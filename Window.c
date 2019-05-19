@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "raylib.h"
+#include <raylib.h>
 #define VERSION "WHAP Project 0.1"
 #define TRUE 1
 #define FALSE 0
@@ -17,20 +17,17 @@ int main()
     int screenWidth = 480;
     int screenHeight = 272;
     InitWindow(screenWidth, screenHeight, VERSION);
-    Texture2D charLeft[6] = {LoadTexture("images/runleft00.png"), LoadTexture("images/runleft01.png"), LoadTexture("images/runleft02.png"),
-							LoadTexture("images/runleft03.png"), LoadTexture("images/runleft04.png"), LoadTexture("images/runleft05.png")};
-	Texture2D charRight[6] = {LoadTexture("images/runright00.png"), LoadTexture("images/runright01.png"), LoadTexture("images/runright02.png"),
-							LoadTexture("images/runright03.png"), LoadTexture("images/runright04.png"), LoadTexture("images/runright05.png")};
+    Texture2D runSheet = LoadTexture("images/runSheet.png");
 	Texture2D background = LoadTexture("images/background.png");
-	Texture2D idleRight[3] = {LoadTexture("images/idleright00.png"), LoadTexture("images/idleright01.png"), LoadTexture("images/idleright02.png")};
-	Texture2D idleLeft[3] = {LoadTexture("images/idleleft00.png"), LoadTexture("images/idleleft01.png"), LoadTexture("images/idleleft02.png")};
-	int posX = 0;
-	int posY = 208;
-    int vel = 4;
+	Texture2D idleSheet = LoadTexture("images/idleSheet.png");
+	float idleFrameWidth = (float)(idleSheet.width / 3);
+	float runFrameWidth = (float)(runSheet.width / 6);
+	Vector2 pos = {0, 208};
+    float vel = 4;
     
     SetTargetFPS(30);
     
-    struct charAspects windowDraw(struct charAspects charAspects, Texture2D charLeft[], Texture2D charRight[], Texture2D idleRight[], Texture2D idleLeft[], int posX, int posY, Texture2D background)
+    struct charAspects windowDraw(struct charAspects charAspects, Texture2D runSheet, Texture2D idleSheet, Vector2 pos, Texture2D background, float idleFrameWidth, float runFrameWidth)
     {
 		DrawTexture(background, 0, 0, WHITE);
 		DrawFPS(0, 0);
@@ -46,19 +43,19 @@ int main()
 			{
 			if (charAspects.walkRight == TRUE)
 				{
-				DrawTexture(idleRight[charAspects.standCount / 6], posX, posY, WHITE);
+				DrawTextureRec(idleSheet, (Rectangle){0 + idleFrameWidth * (charAspects.standCount / 6), 0, idleFrameWidth, (float)(idleSheet.height / 2)},(Vector2)pos, WHITE);
 				charAspects.standCount += 1;
 				}
-			if (charAspects.walkLeft == TRUE)
+			else if (charAspects.walkLeft == TRUE)
 				{
-				DrawTexture(idleLeft[charAspects.standCount / 6], posX, posY, WHITE);
+				DrawTextureRec(idleSheet, (Rectangle){0 + idleFrameWidth * (charAspects.standCount / 6), 37, idleFrameWidth, (float)(idleSheet.height / 2)},(Vector2)pos, WHITE);
 				charAspects.standCount += 1;
 				}
 			}
 		else {
 			if (charAspects.walkRight == TRUE)
 				{
-				DrawTexture(charRight[charAspects.walkCount / 3], posX, posY, WHITE);
+				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (charAspects.walkCount / 3), 0, runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
 				if (IsKeyDown(KEY_RIGHT)){
 					charAspects.walkCount += 1;
 					}
@@ -66,9 +63,9 @@ int main()
 					charAspects.walkCount = 0;
 					}
 				}
-			if (charAspects.walkLeft == TRUE)
+			else if (charAspects.walkLeft == TRUE)
 				{
-				DrawTexture(charLeft[charAspects.walkCount / 3], posX, posY, WHITE);
+				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (charAspects.walkCount / 3), 37, runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
 				if (IsKeyDown(KEY_LEFT)){
 				charAspects.walkCount += 1;
 					}
@@ -82,28 +79,28 @@ int main()
     
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-        if (IsKeyDown(KEY_RIGHT) && posX < (screenWidth - 37 - vel))
+        if (IsKeyDown(KEY_RIGHT) && pos.x < (screenWidth - 37 - vel))
 		{
-			posX += vel;
+			pos.x += vel;
 			man.walkRight = TRUE;
 			man.walkLeft = FALSE;
 			man.isStanding = FALSE;
 		}
-		if (IsKeyDown(KEY_LEFT) && posX > 0)
+		else if (IsKeyDown(KEY_LEFT) && pos.x > 0)
 		{
-			posX -= vel;
+			pos.x -= vel;
 			man.walkRight = FALSE;
 			man.walkLeft = TRUE;
 			man.isStanding = FALSE;
 		}
-		if (IsKeyUp(KEY_RIGHT) && IsKeyUp(KEY_LEFT))
+		else if (IsKeyUp(KEY_RIGHT) && IsKeyUp(KEY_LEFT))
 		{
 			man.isStanding = TRUE;
 		}
         
         BeginDrawing();
 		//ClearBackground(RAYWHITE);
-		man = windowDraw(man, charLeft, charRight, idleRight, idleLeft, posX, posY, background);
+		man = windowDraw(man, runSheet, idleSheet, pos, background, idleFrameWidth, runFrameWidth);
         EndDrawing();
     }
 	CloseWindow();
