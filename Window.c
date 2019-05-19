@@ -6,101 +6,84 @@
 
 int main()
 {
-    struct charAspects{
-		int isStanding;
-		int walkRight;
-		int walkLeft;
-		int walkCount;
-		int standCount;
-	};
-	struct charAspects man = {TRUE, TRUE, FALSE, 0, 0};
-    int screenWidth = 480;
-    int screenHeight = 272;
-    InitWindow(screenWidth, screenHeight, VERSION);
-    Texture2D runSheet = LoadTexture("images/runSheet.png");
+	//Window Initialization
+	int screenWidth = 480;
+	int screenHeight = 272;
+	InitWindow(screenWidth, screenHeight, VERSION);
+	SetTargetFPS(30);
+	
+	//Texture / Sprite Sheets Loading
+	Texture2D runSheet = LoadTexture("images/runSheet.png");
 	Texture2D background = LoadTexture("images/background.png");
 	Texture2D idleSheet = LoadTexture("images/idleSheet.png");
+	
+	// Frame Variables
 	float idleFrameWidth = (float)(idleSheet.width / 3);
 	float runFrameWidth = (float)(runSheet.width / 6);
+	int idleFrame = 0;
+	int runFrame = 0;
+	int isLeft = FALSE;
+	
+	//Movement Variables
 	Vector2 pos = {0, 208};
-    float vel = 4;
-    
-    SetTargetFPS(30);
-    
-    struct charAspects windowDraw(struct charAspects charAspects, Texture2D runSheet, Texture2D idleSheet, Vector2 pos, Texture2D background, float idleFrameWidth, float runFrameWidth)
-    {
+	float vel = 4;
+	
+	int GetKeyDown()
+	{
+		if((IsKeyDown(KEY_D) == 1) || (IsKeyDown(KEY_RIGHT) == 1)){
+			return KEY_RIGHT;
+		}
+		else if((IsKeyDown(KEY_A) == 1) || (IsKeyDown(KEY_LEFT) == 1)){
+			return KEY_LEFT;
+		}
+		else{
+			return 0;
+		}
+	}
+
+	while (!WindowShouldClose())    // Detect window close button or ESC key
+	{
+		BeginDrawing();
+		ClearBackground(RAYWHITE);
 		DrawTexture(background, 0, 0, WHITE);
 		DrawFPS(0, 0);
-		if ((charAspects.walkCount + 1) >= 18)
-			{
-			charAspects.walkCount = 0;
-			}
-		if ((charAspects.standCount + 1) >= 18)
-			{
-			charAspects.standCount = 0;
-			}
-		if (charAspects.isStanding == TRUE)
-			{
-			if (charAspects.walkRight == TRUE)
-				{
-				DrawTextureRec(idleSheet, (Rectangle){0 + idleFrameWidth * (charAspects.standCount / 6), 0, idleFrameWidth, (float)(idleSheet.height / 2)},(Vector2)pos, WHITE);
-				charAspects.standCount += 1;
-				}
-			else if (charAspects.walkLeft == TRUE)
-				{
-				DrawTextureRec(idleSheet, (Rectangle){0 + idleFrameWidth * (charAspects.standCount / 6), 37, idleFrameWidth, (float)(idleSheet.height / 2)},(Vector2)pos, WHITE);
-				charAspects.standCount += 1;
-				}
-			}
-		else {
-			if (charAspects.walkRight == TRUE)
-				{
-				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (charAspects.walkCount / 3), 0, runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
-				if (IsKeyDown(KEY_RIGHT)){
-					charAspects.walkCount += 1;
-					}
-				else{
-					charAspects.walkCount = 0;
-					}
-				}
-			else if (charAspects.walkLeft == TRUE)
-				{
-				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (charAspects.walkCount / 3), 37, runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
-				if (IsKeyDown(KEY_LEFT)){
-				charAspects.walkCount += 1;
-					}
-				else{
-					charAspects.walkCount = 0;
-				}
-				}
-			}
-		return charAspects;
-	}
-    
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
-        if (IsKeyDown(KEY_RIGHT) && pos.x < (screenWidth - 37 - vel))
+		
+		//Frame Counter
+		if((idleFrame + 1) >= 18)
 		{
-			pos.x += vel;
-			man.walkRight = TRUE;
-			man.walkLeft = FALSE;
-			man.isStanding = FALSE;
+			idleFrame = 0;
 		}
-		else if (IsKeyDown(KEY_LEFT) && pos.x > 0)
+		else if((runFrame + 1) >= 18)
 		{
-			pos.x -= vel;
-			man.walkRight = FALSE;
-			man.walkLeft = TRUE;
-			man.isStanding = FALSE;
+			runFrame = 0;
 		}
-		else if (IsKeyUp(KEY_RIGHT) && IsKeyUp(KEY_LEFT))
+		
+		//Character Movement Display Frame by Frame
+		switch(GetKeyDown())
 		{
-			man.isStanding = TRUE;
+			case KEY_RIGHT:
+				if(pos.x < (screenWidth - runFrameWidth - vel))
+				{
+					pos.x += vel;
+				}
+				isLeft = FALSE;
+				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (runFrame / 3), (float)(0 + (runSheet.height / 2) * isLeft), runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
+				runFrame ++;
+				break;
+			case KEY_LEFT:
+				if(pos.x > vel)
+				{
+					pos.x -= vel;
+				}
+				isLeft = TRUE;
+				DrawTextureRec(runSheet, (Rectangle){0 + runFrameWidth * (runFrame / 3), (float)(0 + (runSheet.height / 2) * isLeft), runFrameWidth, (float)(runSheet.height / 2)},(Vector2)pos, WHITE);
+				runFrame ++;
+				break;
+			default:
+				DrawTextureRec(idleSheet, (Rectangle){0 + idleFrameWidth * (idleFrame / 6), (float)(0 + (runSheet.height / 2) * isLeft), idleFrameWidth, (float)(idleSheet.height / 2)},(Vector2)pos, WHITE);
+				idleFrame ++;
+				runFrame = 0;
 		}
-        
-        BeginDrawing();
-		//ClearBackground(RAYWHITE);
-		man = windowDraw(man, runSheet, idleSheet, pos, background, idleFrameWidth, runFrameWidth);
         EndDrawing();
     }
 	CloseWindow();
