@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <raylib.h>
+#include "raylib.h"
 #define VERSION "WHAP Project 0.1"
 #define TRUE 1
 #define FALSE 0
@@ -7,15 +7,29 @@
 int main()
 {
 	//Window Initialization
-	int screenWidth = 480;
-	int screenHeight = 272;
+	int screenWidth = 960;
+	int screenHeight = 544;
 	InitWindow(screenWidth, screenHeight, VERSION);
 	SetTargetFPS(30);
 	
-	//Texture / Sprite Sheets Loading
-	Texture2D runSheet = LoadTexture("images/runSheet.png");
-	Texture2D background = LoadTexture("images/background.png");
-	Texture2D idleSheet = LoadTexture("images/idleSheet.png");
+	//Image Resizing
+	Image run = LoadImage("images/runSheet.png");
+	ImageResize(&run, (run.width * 2), (run.height * 2));
+	Image idle = LoadImage("images/idleSheet.png");
+	ImageResize(&idle, (idle.width * 2), (idle.height * 2));
+	Image back = LoadImage("images/background.png");
+	ImageResize(&back, screenWidth, screenHeight);
+	
+	//Texture Loading
+	Texture2D background = LoadTextureFromImage(back);
+	Texture2D titleScreen = LoadTexture("images/titleScreen.png");
+	Texture2D runSheet = LoadTextureFromImage(run);
+	Texture2D idleSheet = LoadTextureFromImage(idle);
+	
+	//Music Loading
+	InitAudioDevice();
+	Music music01 = LoadMusicStream("sounds/fairy_fountain.ogg");
+	PlayMusicStream(music01);
 	
 	// Frame Variables
 	float idleFrameWidth = (float)(idleSheet.width / 3);
@@ -25,8 +39,11 @@ int main()
 	int isLeft = FALSE;
 	
 	//Movement Variables
-	Vector2 pos = {0, 208};
-	float vel = 4;
+	Vector2 pos = {0, 420};
+	float vel = 6;
+	
+	Vector2 titlePos = {(screenWidth / 6), 544};
+	int titleVel = 2;
 	
 	int GetKeyDown()
 	{
@@ -43,9 +60,25 @@ int main()
 
 	while (!WindowShouldClose())    // Detect window close button or ESC key
 	{
+		UpdateMusicStream(music01);
+		if(GetMusicTimePlayed(music01) >= GetMusicTimeLength(music01)) 
+		{
+			StopMusicStream(music01);
+			PlayMusicStream(music01);
+		}
+		
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
 		DrawTexture(background, 0, 0, WHITE);
+		if(IsKeyPressed(KEY_SPACE))
+		{
+			titlePos.y = 20;
+		}
+		else if(titlePos.y != 20)
+		{
+			titlePos.y -= titleVel;
+		}
+		DrawTexture(titleScreen, titlePos.x, titlePos.y, WHITE);
 		DrawFPS(0, 0);
 		
 		//Frame Counter
@@ -86,6 +119,8 @@ int main()
 		}
         EndDrawing();
     }
+    UnloadMusicStream(music01);
+	CloseAudioDevice();
 	CloseWindow();
     return 0;
 }

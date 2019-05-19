@@ -365,7 +365,7 @@ endif
 
 # Define all object files required
 OBJECTS = \
-    Window \
+	mainGame
 
 
 CURRENT_MAKEFILE = $(lastword $(MAKEFILE_LIST))
