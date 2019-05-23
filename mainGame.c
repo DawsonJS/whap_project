@@ -1,21 +1,25 @@
 #include <stdio.h>
 #include <math.h>
 #include "raylib.h"
-#define VERSION "Time Heist 0.1"
+#define VERSION "Time Tales 0.1"
 #define TRUE 1
 #define FALSE 0
 #define VELOCITY 2
-#define SCREENWIDTH 960
-#define SCREENHEIGHT 544
+#define SCREENWIDTH 800
+#define SCREENHEIGHT 600
 
 //Global Variables
-Vector2 charPos = {0, 420};
+int groundLev = 495;
+Vector2 charPos = {0, 495};
+Vector2 backPos = {0, 0};
 int currentFrame = 0;
 int isLeft = FALSE;
 int isJump = FALSE;
-Vector2 titlePos = {(SCREENWIDTH / 4), 544};
+Vector2 titlePos = {(SCREENWIDTH / 5), 544};
 Vector2 mousePoint = { 0.0f, 0.0f };
 int gameCheck = 0;
+int scrollinMan = FALSE;
+int screenNum = 0;
 
 int main()
 {
@@ -33,14 +37,20 @@ int main()
 	ImageResize(&jump, (jump.width * 2), (jump.height * 2));
 	Image back = LoadImage("images/background.png");
 	ImageResize(&back, SCREENWIDTH, SCREENHEIGHT);
-	
-	//Texture Loading
 	Texture2D background = LoadTextureFromImage(back);
+	UnloadImage(back);
+	Texture2D backLevel = LoadTexture("images/backSheet.png");
+	//Texture Loading
+	
 	Texture2D runSheet = LoadTextureFromImage(run);
 	Texture2D idleSheet = LoadTextureFromImage(idle);
 	Texture2D jumpSheet = LoadTextureFromImage(jump);
 	Texture2D titleScreen = LoadTexture("images/titleScreen.png");
 	Texture2D startButtonSheet = LoadTexture("images/startButtonSheet.png");
+	UnloadImage(run);
+	
+	UnloadImage(idle);
+	UnloadImage(jump);
 	
 	//Input
 	int charInput(Texture2D runSheet)
@@ -61,7 +71,7 @@ int main()
 		}
 		if(isJump)
 		{
-			charPos.y = (-64 * sin((3.14 / 60) * currentFrame) + 420);
+			charPos.y = (-64 * sin((3.14 / 60) * currentFrame) + groundLev);
 			if((IsKeyDown(KEY_D) == 1) || (IsKeyDown(KEY_RIGHT) == 1))
 			{
 				if(charPos.x < (SCREENWIDTH - (float)(runSheet.width / 6) - VELOCITY))
@@ -180,14 +190,34 @@ int main()
 			return 0;
 		}
 	}
+	void backParallax(Texture2D runSheet, Texture2D backSheet)
+	{
+		DrawTexture(backSheet, backPos.x, backPos.y, WHITE);
+		if(scrollinMan == 1 || scrollinMan == 2)
+		{
+			if(scrollinMan == 2 && screenNum > 0) 
+			{
+				backPos.x += VELOCITY;
+				if(charPos.x < (SCREENWIDTH - (float)(runSheet.width / 6))) {charPos.x += VELOCITY;}
+				if(backPos.x == (SCREENWIDTH * (screenNum - 1))) {screenNum -= 1; scrollinMan = FALSE;}
+			}
+			else
+			{
+				backPos.x -= VELOCITY;
+				if(charPos.x > VELOCITY) charPos.x -= VELOCITY;
+				if(backPos.x == -1 * SCREENWIDTH) {screenNum ++; scrollinMan = FALSE;}
+			}
+		}
+		if(charPos.x >= (SCREENWIDTH - (float)(runSheet.width / 6) - VELOCITY)) {DrawText("Press Enter to Continue", (SCREENWIDTH - 175), 470, 15, BLACK); if(IsKeyPressed(KEY_ENTER)) scrollinMan = TRUE;}
+		else if(charPos.x == VELOCITY && screenNum > 0) {DrawText("Press Enter to Continue", 5, 470, 15, BLACK); if(IsKeyPressed(KEY_ENTER)) scrollinMan = 2;}
+	}
 	while(!WindowShouldClose())
 	{
 		BeginDrawing();
         ClearBackground(RAYWHITE);
-		DrawTexture(background, 0, 0, WHITE);
-		DrawFPS(5, 5);
 		switch(gameCheck){
 			case 0:
+				DrawTexture(backLevel, backPos.x, backPos.y, WHITE);
 				if(!titleDisplay(titleScreen))
 				{
 					buttonFunction(startButtonSheet, (Vector2){SCREENWIDTH / 2 - startButtonSheet.width / 2, SCREENHEIGHT / 2 - startButtonSheet.height / 3 / 2}, 1);
@@ -195,9 +225,11 @@ int main()
 				}
 				break;
 			case 1:
+				backParallax(runSheet, backLevel);
 				drawChar(runSheet, idleSheet, jumpSheet);
 				break;
 		}
+		DrawFPS(5, 5);
 		EndDrawing();
 	}
 	CloseWindow();
