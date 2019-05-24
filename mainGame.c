@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <math.h>
 #include "raylib.h"
+#define PHYSAC_IMPLEMENTATION
+#define PHYSAC_NO_THREADS
+#include "physac.h"
 #define VERSION "Time Tales 0.1"
 #define TRUE 1
 #define FALSE 0
@@ -35,11 +38,7 @@ int main()
 	ImageResize(&idle, (idle.width * 2), (idle.height * 2));
 	Image jump = LoadImage("images/jumpSheet.png");
 	ImageResize(&jump, (jump.width * 2), (jump.height * 2));
-	Image back = LoadImage("images/background.png");
-	ImageResize(&back, SCREENWIDTH, SCREENHEIGHT);
-	Texture2D background = LoadTextureFromImage(back);
-	UnloadImage(back);
-	Texture2D backLevel = LoadTexture("images/backSheet.png");
+	Texture2D backGround = LoadTexture("images/backSheet.png");
 	//Texture Loading
 	
 	Texture2D runSheet = LoadTextureFromImage(run);
@@ -48,7 +47,6 @@ int main()
 	Texture2D titleScreen = LoadTexture("images/titleScreen.png");
 	Texture2D startButtonSheet = LoadTexture("images/startButtonSheet.png");
 	UnloadImage(run);
-	
 	UnloadImage(idle);
 	UnloadImage(jump);
 	
@@ -214,10 +212,10 @@ int main()
 	while(!WindowShouldClose())
 	{
 		BeginDrawing();
-        ClearBackground(RAYWHITE);
+		ClearBackground(RAYWHITE);
 		switch(gameCheck){
 			case 0:
-				DrawTexture(backLevel, backPos.x, backPos.y, WHITE);
+				DrawTexture(backGround, backPos.x, backPos.y, WHITE);
 				if(!titleDisplay(titleScreen))
 				{
 					buttonFunction(startButtonSheet, (Vector2){SCREENWIDTH / 2 - startButtonSheet.width / 2, SCREENHEIGHT / 2 - startButtonSheet.height / 3 / 2}, 1);
@@ -225,7 +223,7 @@ int main()
 				}
 				break;
 			case 1:
-				backParallax(runSheet, backLevel);
+				backParallax(runSheet, backGround);
 				drawChar(runSheet, idleSheet, jumpSheet);
 				break;
 		}
