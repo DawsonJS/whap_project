@@ -28,7 +28,6 @@
 int x = 0;
 int isLeft = FALSE;
 int isJump = FALSE;
-int jumpFrame = 0;
 int currentFrame = 0;
 
 int main(void)
@@ -88,6 +87,7 @@ int main(void)
 		int key;
 		if(IsKeyPressed(KEY_SPACE))
 		{
+			isJump = TRUE;
 			key = KEY_SPACE;
 		}
 		else if((IsKeyDown(KEY_D) == 1) || (IsKeyDown(KEY_RIGHT) == 1)){
@@ -113,6 +113,7 @@ int main(void)
 				break;
 			case KEY_SPACE:
 				body->velocity.y = -VELOCITY * 6;
+				if(body->isGrounded) isJump = FALSE;
 				return 2;
 				break;
 			default:
@@ -124,26 +125,29 @@ int main(void)
 	{ // Takes Variable from Previous Function and Draws cooresponding sprite
 		int mvmentOption = charInput(runSheet, player);
 		if(currentFrame >= 60) currentFrame = 0;
-		switch(mvmentOption) 
+		if(isJump)
 		{
-			case 0: //Default Idle Stance
-				DrawTextureRec(idleSheet, 
-					(Rectangle){0 + (float)(idleSheet.width / 3) * (currentFrame / 20), 
-					(float)(0 + ((idleSheet.height / 2) * isLeft)), (float)(idleSheet.width / 3), 
-					(float)(idleSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
-				break;
-			case 1: //Running Horizontal
-				DrawTextureRec(runSheet, 
-					(Rectangle){0 + (float)(runSheet.width / 6) * (currentFrame / 10), 
-					(float)(0 + ((runSheet.height / 2) * isLeft)), (float)(runSheet.width / 6), 
-					(float)(runSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
-				break;
-			case 2:
-				DrawTextureRec(jumpSheet, 
-					(Rectangle){0 + (float)(jumpSheet.width / 4) * (currentFrame / 4), 
-					(float)(0 + (jumpSheet.height / 2) * isLeft), (float)(jumpSheet.width / 4), 
-					(float)(jumpSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
-				break;
+			DrawTextureRec(jumpSheet, 
+				(Rectangle){0 + (float)(jumpSheet.width / 4) * (currentFrame / 4), 
+				(float)(0 + (jumpSheet.height / 2) * isLeft), (float)(jumpSheet.width / 4), 
+				(float)(jumpSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
+		}
+		else{
+			switch(mvmentOption) 
+			{
+				case 0: //Default Idle Stance
+					DrawTextureRec(idleSheet, 
+						(Rectangle){0 + (float)(idleSheet.width / 3) * (currentFrame / 20), 
+						(float)(0 + ((idleSheet.height / 2) * isLeft)), (float)(idleSheet.width / 3), 
+						(float)(idleSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
+					break;
+				case 1: //Running Horizontal
+					DrawTextureRec(runSheet, 
+						(Rectangle){0 + (float)(runSheet.width / 6) * (currentFrame / 10), 
+						(float)(0 + ((runSheet.height / 2) * isLeft)), (float)(runSheet.width / 6), 
+						(float)(runSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(body, 3), WHITE);
+					break;
+			}
 		}
 		currentFrame ++;
 	}
