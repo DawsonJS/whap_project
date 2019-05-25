@@ -365,8 +365,7 @@ endif
 
 # Define all object files required
 OBJECTS = \
-	mainGame \
-	physics_movement
+	mainGame
 
 
 CURRENT_MAKEFILE = $(lastword $(MAKEFILE_LIST))
