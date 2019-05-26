@@ -18,6 +18,8 @@ int groundLev = 495;
 Vector2 charPos = {10, 495};
 Vector2 backPos = {0, 0};
 int currentFrame = 0;
+int npcFrame = 0;
+int textCounter = 0;
 int isLeft = FALSE;
 int isJump = FALSE;
 Vector2 titlePos = {(SCREENWIDTH / 5), 544};
@@ -26,6 +28,7 @@ int gameCheck = 0;
 int scrollinMan = FALSE;
 int screenNum = 0;
 int levelZero[3] = {FALSE, FALSE, FALSE};
+int isText = FALSE;
 
 //Physics Objects
 //levelZero
@@ -40,6 +43,17 @@ PhysicsBody oneBox;
 PhysicsBody platformTwo;
 PhysicsBody platformThree;
 
+typedef struct
+{
+	Texture2D spriteSheet;
+	int numFrames;
+	char textBox[200];
+} nonPlayerChar;
+nonPlayerChar beardMan;
+nonPlayerChar colonialMan;
+nonPlayerChar oldMan;
+nonPlayerChar oldWoman;
+nonPlayerChar trueWizard;
 
 int main()
 {
@@ -54,20 +68,20 @@ int main()
 	ImageResize(&run, (run.width * SCALAR), (run.height * SCALAR));
 	Image idle = LoadImage("images/idleSheet1.png");
 	ImageResize(&idle, (idle.width * SCALAR), (idle.height * SCALAR));
-	//Image jump = LoadImage("images/jumpSheet.png");
-	//ImageResize(&jump, (jump.width * SCALAR), (jump.height * SCALAR));
+	Image jump = LoadImage("images/jumpSheet1.png");
+	ImageResize(&jump, (jump.width * SCALAR), (jump.height * SCALAR));
 	Texture2D backGround = LoadTexture("images/backSheet.png");
 	Texture2D levelZeroBack = LoadTexture("images/levelZero.png");
 	//Texture Loading
 	
 	Texture2D runSheet = LoadTextureFromImage(run);
 	Texture2D idleSheet = LoadTextureFromImage(idle);
-	//Texture2D jumpSheet = LoadTextureFromImage(jump);
+	Texture2D jumpSheet = LoadTextureFromImage(jump);
 	Texture2D titleScreen = LoadTexture("images/titleScreen.png");
 	Texture2D startButtonSheet = LoadTexture("images/startButtonSheet.png");
 	UnloadImage(run);
 	UnloadImage(idle);
-	//UnloadImage(jump);
+	UnloadImage(jump);
 	
 	//Physics Engine
 	InitPhysics();
@@ -80,7 +94,37 @@ int main()
 	PhysicsBody charBody = CreatePhysicsBodyRectangle((Vector2)charPos, (float)(runSheet.width / 6), (float)(runSheet.height / 2), 1);
 	charBody->freezeOrient = true;      // Constrain body rotation to avoid little collision torque amounts
 	
-	int charInput(Texture2D runSheet, PhysicsBody player) 
+	void textBoxDisplay(char message[50], Vector2 Position)
+	{
+		Rectangle container = {Position.x - 125, Position.y - 50, 225, 50};
+		if (IsKeyDown(KEY_LEFT_CONTROL)) textCounter += 8;
+		else textCounter += 4;
+		
+		DrawRectangleLinesEx(container, 3, BLACK); 
+		DrawTextRec(GetFontDefault(), SubText(message, 0, textCounter/10),
+			(Rectangle){container.x + 4, container.y + 4, container.width - 4, container.height - 4},
+			10, 1, true, RAYWHITE);
+		if (IsKeyPressed(KEY_ENTER)) {textCounter = 0; isText = FALSE;}
+	}
+	
+	void initNonPlayerChar(nonPlayerChar NPC, Vector2 npcPosition, PhysicsBody player)
+	{
+		if(npcFrame >= 180) npcFrame = 0;
+		DrawTextureRec(NPC.spriteSheet, (Rectangle){0 + (float)(NPC.spriteSheet.width / NPC.numFrames) * (npcFrame / (180 / NPC.numFrames)), 0, (float)(NPC.spriteSheet.width / NPC.numFrames), (float)(NPC.spriteSheet.height)},(Vector2)npcPosition, WHITE);
+		Rectangle npcHitBox = {npcPosition.x, npcPosition.y, (NPC.spriteSheet.width / NPC.numFrames), NPC.spriteSheet.height};
+		if(CheckCollisionPointRec(player->position, npcHitBox))
+		{
+			if(isText) textBoxDisplay(NPC.textBox, npcPosition);
+			else
+			{
+				DrawText("Press Enter", npcPosition.x - 20, npcPosition.y - 10, 12, BLACK);
+				if(IsKeyPressed(KEY_ENTER)) isText = TRUE;
+			}
+		}
+		npcFrame ++;
+	}
+	
+	int charInput(PhysicsBody player) 
 	{ // Handles Input from User and Turns it into Variable
 		int key;
 		if(IsKeyPressed(KEY_SPACE))
@@ -112,16 +156,16 @@ int main()
 				break;
 			case KEY_SPACE:
 				player->velocity.y = -VELOCITY * 7.5;
-				return 0;
+				return 2;
 				break;
 			default:
 				return 0;
 		}
 	}
 
-	void drawChar(Texture2D runSheet, Texture2D idleSheet, PhysicsBody player)
+	void drawChar(Texture2D runSheet, Texture2D idleSheet, Texture2D jumpSheet, PhysicsBody player)
 	{ // Takes Variable from Previous Function and Draws cooresponding sprite
-		int mvmentOption = charInput(runSheet, player);
+		int mvmentOption = charInput(player);
 		if(currentFrame >= 60) currentFrame = 0;
 		switch(mvmentOption) 
 		{
@@ -137,12 +181,12 @@ int main()
 					(float)(0 + ((runSheet.height / 2) * isLeft)), (float)(runSheet.width / 6), 
 					(float)(runSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(player, 3), WHITE);
 				break;
-			//case 2:
-				//DrawTextureRec(jumpSheet, 
-					//(Rectangle){0 + (float)(jumpSheet.width / 4) * (currentFrame / 15), 
-					//(float)(0 + (jumpSheet.height / 2) * isLeft), (float)(jumpSheet.width / 4), 
-					//(float)(jumpSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(player, 3), WHITE);
-				//break;
+			case 2:
+				DrawTextureRec(jumpSheet, 
+					(Rectangle){0 + (float)(jumpSheet.width / 4) * (currentFrame / 15), 
+					(float)(0 + (jumpSheet.height / 2) * isLeft), (float)(jumpSheet.width / 4), 
+					(float)(jumpSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(player, 3), WHITE);
+				break;
 		}
 		currentFrame ++;
 	}
@@ -202,7 +246,7 @@ int main()
 			return 0;
 		}
 	}
-	void backParallax(Texture2D runSheet, Texture2D idleSheet, Texture2D backSheet, PhysicsBody player)
+	void backParallax(Texture2D runSheet, Texture2D backSheet, PhysicsBody player)
 	{ // Background movement according to screenNum (0-2)
 		DrawTexture(backSheet, backPos.x, backPos.y, WHITE);
 		if(scrollinMan == 1 || scrollinMan == 2)
@@ -232,8 +276,7 @@ int main()
 				}
 			}
 		}
-		else drawChar(runSheet, idleSheet, player);
-		if(player->position.x >= (SCREENWIDTH - (float)(runSheet.width / 6)) && screenNum < 2) {DrawText("Press Enter to Continue", (SCREENWIDTH - 175), 470, 15, BLACK); if(IsKeyPressed(KEY_ENTER)) scrollinMan = TRUE;}
+		if(player->position.x >= (SCREENWIDTH - (float)(runSheet.width / 6)) && screenNum < 2) {DrawText("Press Enter to Continue", (SCREENWIDTH - 180), 470, 15, BLACK); if(IsKeyPressed(KEY_ENTER)) scrollinMan = TRUE;}
 		else if(player->position.x <= 50 && screenNum > 0) {DrawText("Press Enter to Continue", 5, 470, 15, BLACK); if(IsKeyPressed(KEY_ENTER)) scrollinMan = 2;}
 	}
 	void levelZeroDeInit()
@@ -247,19 +290,27 @@ int main()
 					DestroyPhysicsBody(topBox);
 					DestroyPhysicsBody(ledge);
 					DestroyPhysicsBody(platform);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
+					isText = FALSE;
 					break;
 				case 1:
 					DestroyPhysicsBody(threeBarrels);
 					DestroyPhysicsBody(oneBarrel);
 					DestroyPhysicsBody(ledgeTwo);
 					DestroyPhysicsBody(oneBox);
+					UnloadTexture(oldMan.spriteSheet);
+					UnloadTexture(oldWoman.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
+					isText = FALSE;
 					break;
 				case 2:
 					DestroyPhysicsBody(platformTwo);
 					DestroyPhysicsBody(platformThree);
+					UnloadTexture(trueWizard.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
+					isText = FALSE;
 					break;
 			}
 		}
@@ -272,30 +323,39 @@ int main()
 					DestroyPhysicsBody(topBox);
 					DestroyPhysicsBody(ledge);
 					DestroyPhysicsBody(platform);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
+					isText = FALSE;
 					break;
 				case 1:
 					DestroyPhysicsBody(threeBarrels);
 					DestroyPhysicsBody(oneBarrel);
 					DestroyPhysicsBody(ledgeTwo);
 					DestroyPhysicsBody(oneBox);
+					UnloadTexture(oldMan.spriteSheet);
+					UnloadTexture(oldWoman.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
+					isText = FALSE;
 					break;
 				case 2:
 					DestroyPhysicsBody(platformTwo);
 					DestroyPhysicsBody(platformThree);
+					UnloadTexture(trueWizard.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
+					isText = FALSE;
 					break;
 			}
 		}
 	}
-	void levelZeroInit()
+	void levelZeroInit(PhysicsBody player)
 	{ // Initializes the current screen on Level 0
 		if(!(levelZero[screenNum]))
 		{
 			switch(screenNum)
 			{
 				case 0:
+					levelZeroDeInit();
 					bottomBoxes = CreatePhysicsBodyRectangle((Vector2){190, 544}, 73, 33, 10);
 					topBox = CreatePhysicsBodyRectangle((Vector2){190, 511}, 39, 33, 10);
 					ledge = CreatePhysicsBodyRectangle((Vector2){638.5, 524}, 48, 13, 10);
@@ -304,6 +364,8 @@ int main()
 					topBox->enabled = false;
 					ledge->enabled = false;
 					platform->enabled = false;
+					beardMan = (nonPlayerChar){LoadTexture("images/bearded-idle.png"), 5, "This curse from God is bad for business!"};
+					colonialMan = (nonPlayerChar){LoadTexture("images/colonialMan.png"), 4, "If one more family member dies, I'm jumping!"};
 					levelZero[screenNum] = TRUE;
 					break;
 				case 1:
@@ -316,6 +378,8 @@ int main()
 					oneBarrel->enabled = false;
 					ledgeTwo->enabled = false;
 					oneBox->enabled = false;
+					oldMan = (nonPlayerChar){LoadTexture("images/oldman-idle.png"), 8, "Man, I hate carrying this medicine all over town . . ."};
+					oldWoman = (nonPlayerChar){LoadTexture("images/woman-idle.png"), 7, "Why does he have to complain so much?"};
 					levelZero[screenNum] = TRUE;
 					break;
 				case 2:
@@ -324,9 +388,33 @@ int main()
 					platformThree = CreatePhysicsBodyRectangle((Vector2){466, 472}, 95, 5, 10);
 					platformTwo->enabled = false;
 					platformThree->enabled = false;
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes."};
 					levelZero[screenNum] = TRUE;
 					break;
 			}
+		}
+		switch(screenNum)
+		{
+			case 0:
+				if(scrollinMan == FALSE)
+				{
+					initNonPlayerChar(beardMan, (Vector2){385, 520}, player);
+					initNonPlayerChar(colonialMan, (Vector2){692, 422}, player);
+				}
+				break;
+			case 1:
+				if(scrollinMan == FALSE)
+				{
+					initNonPlayerChar(oldMan, (Vector2){380, 522}, player);
+					initNonPlayerChar(oldWoman, (Vector2){320, 518}, player);
+				}
+				break;
+			case 2:
+				if(scrollinMan == FALSE)
+				{
+					initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+				}
+				break;
 		}
 	}
 	while(!WindowShouldClose())
@@ -340,12 +428,13 @@ int main()
 				if(!titleDisplay(titleScreen))
 				{
 					buttonFunction(startButtonSheet, (Vector2){SCREENWIDTH / 2 - startButtonSheet.width / 2, SCREENHEIGHT / 2 - startButtonSheet.height / 3 / 2}, 1);
-					drawChar(runSheet, idleSheet, charBody);
+					drawChar(runSheet, idleSheet, jumpSheet, charBody);
 				}
 				break;
 			case 1:
-				backParallax(runSheet, idleSheet, levelZeroBack, charBody);
-				levelZeroInit();
+				backParallax(runSheet, levelZeroBack, charBody);
+				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, charBody);
+				levelZeroInit(charBody);
 				break;
 		}
 		DrawFPS(5, 5);
