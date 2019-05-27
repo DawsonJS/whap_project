@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include "raylib.h"
 #define PHYSAC_IMPLEMENTATION
 #define PHYSAC_NO_THREADS
@@ -12,6 +13,9 @@
 #define SCREENWIDTH 800
 #define SCREENHEIGHT 600
 #define SCALAR 1.5
+//Look into newBody->shape.vertexData = CreateRectanglePolygon(pos, (Vector2){ width, height });
+
+char fadestoBlack[3][75] = {"This is a test for Level 0\n Press Enter to Continue", "This is a test for Level 1\n Press Enter to Continue", "This is a test for Level 2\n Press Enter to Continue"};
 
 //Global Variables
 int groundLev = 495;
@@ -19,16 +23,23 @@ Vector2 charPos = {10, 495};
 Vector2 backPos = {0, 0};
 int currentFrame = 0;
 int npcFrame = 0;
+int attackFrame = 0;
 int textCounter = 0;
 int isLeft = FALSE;
 int isJump = FALSE;
+//int isSlide = FALSE;
+int isAttack = FALSE;
 Vector2 titlePos = {(SCREENWIDTH / 5), 544};
 Vector2 mousePoint = { 0.0f, 0.0f };
 int gameCheck = 0;
 int scrollinMan = FALSE;
 int screenNum = 0;
 int levelZero[3] = {FALSE, FALSE, FALSE};
+int levelOne[3] = {FALSE, FALSE, FALSE};
+int levelTwo[3] = {FALSE, FALSE, FALSE};
 int isText = FALSE;
+int isBlack = FALSE;
+int fadesToBlackIndex;
 
 //Physics Objects
 //levelZero
@@ -42,6 +53,16 @@ PhysicsBody ledgeTwo;
 PhysicsBody oneBox;
 PhysicsBody platformTwo;
 PhysicsBody platformThree;
+PhysicsBody threeBoxes;
+PhysicsBody chainBridge;
+PhysicsBody platformFour;
+PhysicsBody ledgeThree;
+PhysicsBody factoryRoof;
+PhysicsBody platformFive;
+PhysicsBody twoBarrels;
+PhysicsBody twoBoxes;
+PhysicsBody platformSix;
+PhysicsBody fiveBoxes;
 
 typedef struct
 {
@@ -70,18 +91,24 @@ int main()
 	ImageResize(&idle, (idle.width * SCALAR), (idle.height * SCALAR));
 	Image jump = LoadImage("images/jumpSheet1.png");
 	ImageResize(&jump, (jump.width * SCALAR), (jump.height * SCALAR));
+	Image attack = LoadImage("images/attackSheet.png");
+	ImageResize(&attack, (attack.width * SCALAR), (attack.height * SCALAR));
 	Texture2D backGround = LoadTexture("images/backSheet.png");
 	Texture2D levelZeroBack = LoadTexture("images/levelZero.png");
+	Texture2D levelOneBack = LoadTexture("images/levelOne.png");
+	Texture2D levelTwoBack = LoadTexture("images/levelTwo.png");
 	//Texture Loading
 	
 	Texture2D runSheet = LoadTextureFromImage(run);
 	Texture2D idleSheet = LoadTextureFromImage(idle);
 	Texture2D jumpSheet = LoadTextureFromImage(jump);
+	Texture2D attackSheet = LoadTextureFromImage(attack);
 	Texture2D titleScreen = LoadTexture("images/titleScreen.png");
 	Texture2D startButtonSheet = LoadTexture("images/startButtonSheet.png");
 	UnloadImage(run);
 	UnloadImage(idle);
 	UnloadImage(jump);
+	UnloadImage(attack);
 	
 	//Physics Engine
 	InitPhysics();
@@ -93,6 +120,28 @@ int main()
 	wallRight->enabled = false;
 	PhysicsBody charBody = CreatePhysicsBodyRectangle((Vector2)charPos, (float)(runSheet.width / 6), (float)(runSheet.height / 2), 1);
 	charBody->freezeOrient = true;      // Constrain body rotation to avoid little collision torque amounts
+	
+	void fadeToBlack()
+	{
+		if(!isBlack) {ClearBackground(BLACK); isBlack = TRUE;}
+		switch(gameCheck)
+		{
+			case 1:
+				fadesToBlackIndex = 0;
+				break;
+			case 3:
+				fadesToBlackIndex = 1;
+				break;
+			case 5:
+				fadesToBlackIndex = 2;
+				break;
+		}
+		Rectangle container = {SCREENWIDTH / 8, SCREENHEIGHT / 6, 600, 400};
+		textCounter += 8;
+		DrawTextRec(GetFontDefault(), SubText(fadestoBlack[fadesToBlackIndex], 0, textCounter / 10),
+					(Rectangle)container, 14, 1, true, RAYWHITE);
+		if(IsKeyPressed(KEY_ENTER)) {isBlack = FALSE; gameCheck++;}
+	}
 	
 	void textBoxDisplay(char message[50], Vector2 Position)
 	{
@@ -127,7 +176,11 @@ int main()
 	int charInput(PhysicsBody player) 
 	{ // Handles Input from User and Turns it into Variable
 		int key;
-		if(IsKeyPressed(KEY_SPACE))
+		if(IsKeyPressed(KEY_K) && isAttack == FALSE)
+		{
+			key = KEY_K;
+		}
+		else if(IsKeyPressed(KEY_SPACE))
 		{
 			key = KEY_SPACE;
 		}
@@ -158,15 +211,22 @@ int main()
 				player->velocity.y = -VELOCITY * 7.5;
 				return 2;
 				break;
+			case KEY_K:
+				isAttack = TRUE;
+				return 3;
+				break;
 			default:
 				return 0;
 		}
 	}
 
-	void drawChar(Texture2D runSheet, Texture2D idleSheet, Texture2D jumpSheet, PhysicsBody player)
+	void drawChar(Texture2D runSheet, Texture2D idleSheet, Texture2D jumpSheet, Texture2D attackSheet, PhysicsBody player)
 	{ // Takes Variable from Previous Function and Draws cooresponding sprite
 		int mvmentOption = charInput(player);
-		if(currentFrame >= 60) currentFrame = 0;
+		Vector2 vertexDraw = (Vector2)GetPhysicsShapeVertex(player, 3);
+		if(currentFrame >= 60) {currentFrame = 0;}
+		if(attackFrame >= 30) {attackFrame = 0; isAttack = FALSE;}
+		if(isAttack) mvmentOption = 3;
 		switch(mvmentOption) 
 		{
 			case 0: //Default Idle Stance
@@ -187,6 +247,14 @@ int main()
 					(float)(0 + (jumpSheet.height / 2) * isLeft), (float)(jumpSheet.width / 4), 
 					(float)(jumpSheet.height / 2)},(Vector2)GetPhysicsShapeVertex(player, 3), WHITE);
 				break;
+			case 3:
+				DrawTextureRec(attackSheet, 
+					(Rectangle){0 + (float)(attackSheet.width / 5) * (currentFrame / 6), 
+					(float)(0 + (attackSheet.height / 2) * isLeft), (float)(attackSheet.width / 5), 
+					(float)(attackSheet.height / 2)},(Vector2){vertexDraw.x - 10, vertexDraw.y - 5}, WHITE);
+				attackFrame++;
+				break;
+				
 		}
 		currentFrame ++;
 	}
@@ -194,7 +262,7 @@ int main()
 	{ // Function of Beginning Button
 		UnloadTexture(buttonSheet);
 		UnloadTexture(titleScreen);
-		gameCheck = 1;
+		gameCheck ++;
 	}
 	void buttonFunction(Texture2D buttonSheet, Vector2 btnCoords, int functionNumber)
 	{ // Allows for Creation of more than one button
@@ -256,7 +324,7 @@ int main()
 				backPos.x += BACKVELOCITY;
 				if(player->position.x < (SCREENWIDTH - 50) && backPos.x == (-1 * SCREENWIDTH * (screenNum - 1))) 
 				{ 
-					player->position = (Vector2){SCREENWIDTH - 50, 565};
+					player->position.x = (SCREENWIDTH - 50);
 					player->velocity = (Vector2){0, 0};
 					SetPhysicsBodyRotation(player, 0);
 					screenNum -= 1;
@@ -268,7 +336,7 @@ int main()
 				backPos.x -= BACKVELOCITY;
 				if(player->position.x != 50 && backPos.x == -1 * SCREENWIDTH * (screenNum + 1))
 				{ 
-					player->position = (Vector2){50, 565};
+					player->position.x = 50;
 					player->velocity = (Vector2){0, 0};
 					SetPhysicsBodyRotation(player, 0);
 					screenNum ++;
@@ -347,6 +415,39 @@ int main()
 					break;
 			}
 		}
+		else if(levelZero[screenNum + 2])
+		{
+			switch(screenNum + 2)
+			{
+				case 0:
+					DestroyPhysicsBody(bottomBoxes);
+					DestroyPhysicsBody(topBox);
+					DestroyPhysicsBody(ledge);
+					DestroyPhysicsBody(platform);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
+					levelZero[screenNum + 2] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(threeBarrels);
+					DestroyPhysicsBody(oneBarrel);
+					DestroyPhysicsBody(ledgeTwo);
+					DestroyPhysicsBody(oneBox);
+					UnloadTexture(oldMan.spriteSheet);
+					UnloadTexture(oldWoman.spriteSheet);
+					levelZero[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+					DestroyPhysicsBody(platformTwo);
+					DestroyPhysicsBody(platformThree);
+					UnloadTexture(trueWizard.spriteSheet);
+					levelZero[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
 	}
 	void levelZeroInit(PhysicsBody player)
 	{ // Initializes the current screen on Level 0
@@ -388,7 +489,7 @@ int main()
 					platformThree = CreatePhysicsBodyRectangle((Vector2){466, 472}, 95, 5, 10);
 					platformTwo->enabled = false;
 					platformThree->enabled = false;
-					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes."};
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes. Press Y."};
 					levelZero[screenNum] = TRUE;
 					break;
 			}
@@ -413,28 +514,339 @@ int main()
 				if(scrollinMan == FALSE)
 				{
 					initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+					if(IsKeyPressed(KEY_Y) && (isText == TRUE)) 
+					{
+						screenNum = 0; 
+						levelZeroDeInit();
+						isText = FALSE;
+						textCounter = 0;
+						player->position.x = 50;
+						player->velocity = (Vector2){0, 0};
+						SetPhysicsBodyRotation(player, 0);
+						backPos.x = 0;
+						gameCheck++;
+					}
 				}
 				break;
 		}
 	}
+		
+	void levelOneDeInit()
+	{ //De-initializes the screen to move on to the next on Level 1
+		if(levelOne[screenNum - 1])
+		{
+			switch(screenNum - 1)
+			{
+				case 0:
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(oneBox);
+					DestroyPhysicsBody(chainBridge);
+					DestroyPhysicsBody(platformFour);
+					DestroyPhysicsBody(ledgeThree);
+					DestroyPhysicsBody(factoryRoof);
+					levelOne[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(platformFive);
+					DestroyPhysicsBody(twoBarrels);
+					DestroyPhysicsBody(oneBarrel);
+					levelOne[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					levelOne[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+		else if(levelOne[screenNum + 1])
+		{
+			switch(screenNum + 1)
+			{
+				case 0:
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(oneBox);
+					DestroyPhysicsBody(chainBridge);
+					DestroyPhysicsBody(platformFour);
+					DestroyPhysicsBody(ledgeThree);
+					DestroyPhysicsBody(factoryRoof);
+					levelOne[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(platformFive);
+					DestroyPhysicsBody(twoBarrels);
+					DestroyPhysicsBody(oneBarrel);
+					levelOne[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					levelOne[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+		else if(levelOne[screenNum + 2])
+		{
+			switch(screenNum + 2)
+			{
+				case 0:
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(oneBox);
+					DestroyPhysicsBody(chainBridge);
+					DestroyPhysicsBody(platformFour);
+					DestroyPhysicsBody(ledgeThree);
+					DestroyPhysicsBody(factoryRoof);
+					levelOne[screenNum + 2] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(platformFive);
+					DestroyPhysicsBody(twoBarrels);
+					DestroyPhysicsBody(oneBarrel);
+					levelOne[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					UnloadTexture(trueWizard.spriteSheet);
+					levelOne[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+	}
+	void levelOneInit(PhysicsBody player)
+	{ // Initializes the current screen on Level 1
+		if(!(levelOne[screenNum]))
+		{
+			switch(screenNum)
+			{
+				case 0:
+					levelOneDeInit();
+					threeBoxes = CreatePhysicsBodyRectangle((Vector2){498, 547.5}, 103, 33, 10);
+					oneBox = CreatePhysicsBodyRectangle((Vector2){514, 515}, 39, 33, 10);
+					chainBridge = CreatePhysicsBodyRectangle((Vector2){775, 484.5}, 51, 6, 10);
+					platformFour = CreatePhysicsBodyRectangle((Vector2){677, 480}, 145, 5, 10);
+					ledgeThree = CreatePhysicsBodyRectangle((Vector2){539.5, 423.5}, 32, 6, 10);
+					factoryRoof = CreatePhysicsBodyRectangle((Vector2){308.5, 380}, 462, 13, 10);
+					threeBoxes->enabled = false;
+					oneBox->enabled = false;
+					chainBridge->enabled = false;
+					platformFour->enabled = false;
+					ledgeThree->enabled = false;
+					factoryRoof->enabled = false;
+					levelOne[screenNum] = TRUE;
+					break;
+				case 1:
+					levelOneDeInit();
+					platformFive = CreatePhysicsBodyRectangle((Vector2){122.5, 484.5}, 246, 6, 10);
+					twoBarrels = CreatePhysicsBodyRectangle((Vector2){271, 550}, 47, 27, 10);
+					oneBarrel = CreatePhysicsBodyRectangle((Vector2){485.5, 550}, 24, 27, 10);
+					platformFive->enabled = false;
+					twoBarrels->enabled = false;
+					oneBarrel->enabled = false;
+					levelOne[screenNum] = TRUE;
+					break;
+				case 2:
+					levelOneDeInit();
+					twoBoxes = CreatePhysicsBodyRectangle((Vector2){143, 547}, 73, 33, 10);
+					oneBox = CreatePhysicsBodyRectangle((Vector2){142, 514}, 39, 33, 10);
+					twoBoxes->enabled = false;
+					oneBox->enabled = false;
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes. Press Y."};
+					levelOne[screenNum] = TRUE;
+					break;
+			}
+		}
+		
+		switch(screenNum)
+		{
+			case 0:
+				if(scrollinMan == FALSE)
+				{
+
+				}
+				break;
+			case 1:
+				if(scrollinMan == FALSE)
+				{
+
+				}
+				break;
+			case 2:
+				if(scrollinMan == FALSE)
+				{
+					initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+					if(IsKeyPressed(KEY_Y) && (isText == TRUE)) 
+					{
+						screenNum = 0; 
+						levelOneDeInit();
+						isText = FALSE;
+						textCounter = 0;
+						player->position.x = 50;
+						player->velocity = (Vector2){0, 0};
+						SetPhysicsBodyRotation(player, 0);
+						backPos.x = 0;
+						gameCheck++;
+					}
+				}
+				break;
+		}
+	}
+	
+	void levelTwoDeInit()
+	{ //De-initializes the screen to move on to the next on Level 2
+		if(levelTwo[screenNum - 1])
+		{
+			switch(screenNum - 1)
+			{
+				case 0:
+					DestroyPhysicsBody(platformSix);
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					levelTwo[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(fiveBoxes);
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(topBox);
+					levelTwo[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+
+					levelTwo[screenNum - 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+		else if(levelTwo[screenNum + 1])
+		{
+			switch(screenNum + 1)
+			{
+				case 0:
+					DestroyPhysicsBody(platformSix);
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					levelTwo[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(fiveBoxes);
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(topBox);
+					levelTwo[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+
+					levelTwo[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+	}
+	void levelTwoInit(PhysicsBody player)
+	{ // Initializes the current screen on Level 2
+		if(!(levelTwo[screenNum]))
+		{
+			switch(screenNum)
+			{
+				case 0:
+					levelTwoDeInit();
+					platformSix = CreatePhysicsBodyRectangle((Vector2){255.5, 467.5}, 186, 6, 10);
+					twoBoxes = CreatePhysicsBodyRectangle((Vector2){413, 548}, 73, 33, 10);
+					oneBox = CreatePhysicsBodyRectangle((Vector2){414, 515}, 39, 33, 10);
+					platformSix->enabled = false;
+					twoBoxes->enabled = false;
+					oneBox->enabled = false;
+					levelTwo[screenNum] = TRUE;
+					break;
+				case 1:
+					levelTwoDeInit();
+					fiveBoxes = CreatePhysicsBodyRectangle((Vector2){388, 546}, 159, 33, 10);
+					threeBoxes = CreatePhysicsBodyRectangle((Vector2){401.5, 513}, 98, 33, 10);
+					topBox = CreatePhysicsBodyRectangle((Vector2){404, 480}, 39, 33, 10);
+					fiveBoxes->enabled = false;
+					threeBoxes->enabled = false;
+					topBox->enabled = false;
+					levelTwo[screenNum] = TRUE;
+					break;
+				case 2:
+					levelTwoDeInit();
+					
+					levelTwo[screenNum] = TRUE;
+					break;
+			}
+		}
+		
+		switch(screenNum)
+		{
+			case 0:
+				if(scrollinMan == FALSE)
+				{
+
+				}
+				break;
+			case 1:
+				if(scrollinMan == FALSE)
+				{
+
+				}
+				break;
+			case 2:
+				if(scrollinMan == FALSE)
+				{
+
+				}
+				break;
+		}
+	}
+	
 	while(!WindowShouldClose())
 	{
 		RunPhysicsStep();
 		BeginDrawing();
-		ClearBackground(RAYWHITE);
 		switch(gameCheck){
 			case 0:
+				ClearBackground(RAYWHITE);
 				DrawTexture(backGround, backPos.x, backPos.y, WHITE);
 				if(!titleDisplay(titleScreen))
 				{
 					buttonFunction(startButtonSheet, (Vector2){SCREENWIDTH / 2 - startButtonSheet.width / 2, SCREENHEIGHT / 2 - startButtonSheet.height / 3 / 2}, 1);
-					drawChar(runSheet, idleSheet, jumpSheet, charBody);
 				}
 				break;
 			case 1:
+				fadeToBlack();
+				break;
+			case 2:
 				backParallax(runSheet, levelZeroBack, charBody);
-				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, charBody);
+				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, attackSheet, charBody);
 				levelZeroInit(charBody);
+				break;
+			case 3:
+				fadeToBlack();
+				break;
+			case 4:
+				backParallax(runSheet, levelOneBack, charBody);
+				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, attackSheet, charBody);
+				levelOneInit(charBody);
+				break;
+			case 5:
+				fadeToBlack();
+				break;
+			case 6:
+				backParallax(runSheet, levelTwoBack, charBody);
+				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, attackSheet, charBody);
+				levelTwoInit(charBody);
 				break;
 		}
 		DrawFPS(5, 5);
