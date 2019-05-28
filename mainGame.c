@@ -5,17 +5,17 @@
 #define PHYSAC_IMPLEMENTATION
 #define PHYSAC_NO_THREADS
 #include "physac.h"
-#define VERSION "Time Tales 0.2"
+#define VERSION "Time Tales 0.9"
 #define TRUE 1
 #define FALSE 0
 #define VELOCITY 0.15f
+#define ENEMYVELOCITY 2
 #define BACKVELOCITY 10
 #define SCREENWIDTH 800
 #define SCREENHEIGHT 600
 #define SCALAR 1.5
-//Look into newBody->shape.vertexData = CreateRectanglePolygon(pos, (Vector2){ width, height });
 
-char fadestoBlack[3][75] = {"This is a test for Level 0\n Press Enter to Continue", "This is a test for Level 1\n Press Enter to Continue", "This is a test for Level 2\n Press Enter to Continue"};
+char fadestoBlack[5][1300] = {("Welcome to Time Tales v1.0!\nThis game begins at the height of the Black Death, plague, whatever you \nwould like to call it, circa mid to late 14th century. You, the noble knight \nturned adventurer, seek to end this miserable time for all involved. After \nmeeting a mysterious man who goes by 'The Wizard,' you agree to meet him \nby the well at the edge of town. He tells you nothing can be done of the \npresent, but that hope can be had for the future. He promises to perform his mysterious magic and take you to the lands of a distant time to give you closure.\nPress Enter to Continue"), ("On your journey, The Wizard explains humanity's advancements through time. The Industrial Revolution, marked by the latter half of the 18th century, \nushered in a wave of new innovations replacing manual labor with so called \ndevices named machines. These machines increased several industries \nten-fold. For example, Richard Arkwright's advent of the water frame \ngreatly improved the cotton spinning process and was followed by a \nplethora of cotton mills when the patent expired. Continually, steam power \nand the steam engine, invented by James Watt, allowed for these machines \nto work without direct access to water. Thus, innovation and \nindustrialization led to the expansion and economic boom of Great Britain.\nKey Concept 5.1\n\nAfter you arrive, The Wizard says he has business to attend to and to \nmeet him by another well at the edge of town. You decide to explore this \nmysterious time period for yourself.\nPress Enter to Continue"), ("When asked about World War II, The Wizard begins with the horrors of \nhuman advancement of weaponry and warfare. The use of chemicals and \ntrench warfare along with the invention of flying and beastial travel \nmachines made World War I known as the Great War. However, it was not \nlong after instability broke out once again. Bitter Germany, under the \nformer-Cyclops Adolf Hitler, invaded Poland while still under supervision \nfrom other kingdoms. This led to war being declared upon Germany by both \nFrance and Britain in 1939. Within the gap between the two Great Wars, new machines and mysterious devices had been either developed or continued to be developed during this time. The Wizard continued, saying a major beginning for humanity occurred in a place named Bletchley Park. It was at this place where the first machine called a 'computer' is regarded to have been built. Alan Turing is accredited to developing a major part of the Bombe, a \ncryptographic deciphering device used to decrypt the codes of German \ntransmissions. This technology marked the beginning of true computational \nmechanics.\nKey Concept 6.1\n\nThe Wizard then tells you to meet him at the conveniently placed well at the edge of the park.\nPress Enter to Continue"), ("Time Tales v1.0\nProgramming by Dawson Schraiber\nArtwork provided by various sources on the interwebs"), ("GAME OVER\nPress Enter to Try Again")};
 
 //Global Variables
 int groundLev = 495;
@@ -24,8 +24,11 @@ Vector2 backPos = {0, 0};
 int currentFrame = 0;
 int npcFrame = 0;
 int attackFrame = 0;
+int enemyFrame = 0;
+int deathFrame = 0;
 int textCounter = 0;
 int isLeft = FALSE;
+int enemyIsLeft = FALSE;
 int isJump = FALSE;
 //int isSlide = FALSE;
 int isAttack = FALSE;
@@ -40,6 +43,12 @@ int levelTwo[3] = {FALSE, FALSE, FALSE};
 int isText = FALSE;
 int isBlack = FALSE;
 int fadesToBlackIndex;
+int attackDamage = 1;
+float playerHealth = 15;
+float maxPlayerHealth = 15;
+int isContinue = FALSE;
+int pageNum = 1;
+int textStart = 0;
 
 //Physics Objects
 //levelZero
@@ -68,13 +77,31 @@ typedef struct
 {
 	Texture2D spriteSheet;
 	int numFrames;
-	char textBox[200];
+	char textBox[600];
 } nonPlayerChar;
 nonPlayerChar beardMan;
 nonPlayerChar colonialMan;
 nonPlayerChar oldMan;
 nonPlayerChar oldWoman;
 nonPlayerChar trueWizard;
+nonPlayerChar childMan;
+nonPlayerChar popo1;
+nonPlayerChar popo2;
+
+typedef struct
+{
+	Texture2D walkSheet;
+	Texture2D deathSheet;
+	int walkFrames;
+	int deathFrames;
+	int isDead;
+	Vector2 enemyPosition;
+	float actualHealth;
+	float maxHealth;
+} enemyBoss;
+enemyBoss cyclopsBoss;
+enemyBoss flaminSkullBoss;
+enemyBoss miniMinotaurBoss;
 
 int main()
 {
@@ -93,6 +120,23 @@ int main()
 	ImageResize(&jump, (jump.width * SCALAR), (jump.height * SCALAR));
 	Image attack = LoadImage("images/attackSheet.png");
 	ImageResize(&attack, (attack.width * SCALAR), (attack.height * SCALAR));
+	//Bosses
+	Image cyclopsWalk = LoadImage("images/cyclopsWalkSheet.png");
+	ImageResize(&cyclopsWalk, (cyclopsWalk.width * SCALAR), (cyclopsWalk.height * SCALAR));
+	Texture2D cyclopsWalkSheet = LoadTextureFromImage(cyclopsWalk);
+	Image cyclopsDeath = LoadImage("images/cyclopsDeathSheet.png");
+	ImageResize(&cyclopsDeath, (cyclopsDeath.width * SCALAR), (cyclopsDeath.height * SCALAR));
+	Texture2D cyclopsDeathSheet = LoadTextureFromImage(cyclopsDeath);
+	Image flaminSkull = LoadImage("images/skullWalkSheet.png");
+	ImageResize(&flaminSkull, (flaminSkull.width * SCALAR), (flaminSkull.height * SCALAR));
+	Texture2D flaminSkullSheet = LoadTextureFromImage(flaminSkull);
+	Image miniMino = LoadImage("images/miniMinotaurWalkSheet.png");
+	ImageResize(&miniMino, (miniMino.width * SCALAR), (miniMino.height * SCALAR));
+	Texture2D miniMinotaurWalkSheet = LoadTextureFromImage(miniMino);
+	Image miniNoMino = LoadImage("images/miniMinotaurDeathSheet.png");
+	ImageResize(&miniNoMino, (miniNoMino.width * SCALAR), (miniNoMino.height * SCALAR));
+	Texture2D miniMinotaurDeathSheet = LoadTextureFromImage(miniNoMino);
+	
 	Texture2D backGround = LoadTexture("images/backSheet.png");
 	Texture2D levelZeroBack = LoadTexture("images/levelZero.png");
 	Texture2D levelOneBack = LoadTexture("images/levelOne.png");
@@ -109,6 +153,11 @@ int main()
 	UnloadImage(idle);
 	UnloadImage(jump);
 	UnloadImage(attack);
+	UnloadImage(cyclopsWalk);
+	UnloadImage(cyclopsDeath);
+	UnloadImage(flaminSkull);
+	UnloadImage(miniMino);
+	UnloadImage(miniNoMino);
 	
 	//Physics Engine
 	InitPhysics();
@@ -120,9 +169,9 @@ int main()
 	wallRight->enabled = false;
 	PhysicsBody charBody = CreatePhysicsBodyRectangle((Vector2)charPos, (float)(runSheet.width / 6), (float)(runSheet.height / 2), 1);
 	charBody->freezeOrient = true;      // Constrain body rotation to avoid little collision torque amounts
-	
+
 	void fadeToBlack()
-	{
+	{ // Cut to black to give some background information
 		if(!isBlack) {ClearBackground(BLACK); isBlack = TRUE;}
 		switch(gameCheck)
 		{
@@ -135,29 +184,53 @@ int main()
 			case 5:
 				fadesToBlackIndex = 2;
 				break;
+			case 7:
+				fadesToBlackIndex = 3;
+				break;
+			case 2:
+				fadesToBlackIndex = 4;
+				break;
+			case 4:
+				fadesToBlackIndex = 4;
+				break;
+			case 6:
+				fadesToBlackIndex = 4;
+				break;
 		}
-		Rectangle container = {SCREENWIDTH / 8, SCREENHEIGHT / 6, 600, 400};
-		textCounter += 8;
+		Rectangle container = {SCREENWIDTH / 8, SCREENHEIGHT / 6, 600, 500};
+		textCounter += 6;
 		DrawTextRec(GetFontDefault(), SubText(fadestoBlack[fadesToBlackIndex], 0, textCounter / 10),
-					(Rectangle)container, 14, 1, true, RAYWHITE);
-		if(IsKeyPressed(KEY_ENTER)) {isBlack = FALSE; gameCheck++;}
+					(Rectangle)container, 15, 2, true, RAYWHITE);
+		if(IsKeyPressed(KEY_ENTER) && fadesToBlackIndex != 4) {isBlack = FALSE; textCounter = 0; gameCheck++; isContinue = FALSE; pageNum = 1; textStart = 0;}
+		else if(IsKeyPressed(KEY_ENTER) && fadesToBlackIndex == 4)
+		{
+			screenNum = 0;
+			isText = FALSE;
+			textCounter = 0;
+			charBody->position.x = 50;
+			charBody->velocity = (Vector2){0, 0};
+			SetPhysicsBodyRotation(charBody, 0);
+			backPos.x = 0;
+			playerHealth = maxPlayerHealth;
+			deathFrame = 0;
+		}
 	}
-	
-	void textBoxDisplay(char message[50], Vector2 Position)
-	{
+	void textBoxDisplay(char message[600], Vector2 Position)
+	{ // Displays text box for each character
 		Rectangle container = {Position.x - 125, Position.y - 50, 225, 50};
-		if (IsKeyDown(KEY_LEFT_CONTROL)) textCounter += 8;
-		else textCounter += 4;
+		
+		if(!(textCounter >= 1200)) textCounter += 6;
+		else if(isContinue && !(textCounter >= (1200 * pageNum))) textCounter += 6;
 		
 		DrawRectangleLinesEx(container, 3, BLACK); 
-		DrawTextRec(GetFontDefault(), SubText(message, 0, textCounter/10),
+		DrawTextRec(GetFontDefault(), SubText(message, textStart, textCounter/10),
 			(Rectangle){container.x + 4, container.y + 4, container.width - 4, container.height - 4},
 			10, 1, true, RAYWHITE);
-		if (IsKeyPressed(KEY_ENTER)) {textCounter = 0; isText = FALSE;}
+		if(IsKeyPressed(KEY_ENTER) && textCounter >= (strlen(message) * 10)) {textCounter = 0; isText = FALSE; isContinue = FALSE; pageNum = 1; textStart = 0;}
+		else if(IsKeyPressed(KEY_ENTER) && !(textCounter >= (strlen(message) * 10))) {isContinue = TRUE; pageNum++; textStart += 110;}
 	}
-	
 	void initNonPlayerChar(nonPlayerChar NPC, Vector2 npcPosition, PhysicsBody player)
-	{
+	{ // Draws and places NPCs into levels
 		if(npcFrame >= 180) npcFrame = 0;
 		DrawTextureRec(NPC.spriteSheet, (Rectangle){0 + (float)(NPC.spriteSheet.width / NPC.numFrames) * (npcFrame / (180 / NPC.numFrames)), 0, (float)(NPC.spriteSheet.width / NPC.numFrames), (float)(NPC.spriteSheet.height)},(Vector2)npcPosition, WHITE);
 		Rectangle npcHitBox = {npcPosition.x, npcPosition.y, (NPC.spriteSheet.width / NPC.numFrames), NPC.spriteSheet.height};
@@ -172,7 +245,46 @@ int main()
 		}
 		npcFrame ++;
 	}
-	
+	void displayHealthBar(float percentHealth, Vector2 objectPosition)
+	{ // Displays health bar over boss
+		Rectangle barOHealth = {objectPosition.x, objectPosition.y - 10, 96, 10};
+		DrawRectangleLinesEx(barOHealth, 3, BLACK);
+		DrawRectangleRec((Rectangle){objectPosition.x + 3, objectPosition.y - 7, (float)(90 * percentHealth), 4}, RED);
+	}
+	enemyBoss initEnemyBoss(enemyBoss bossEnemy, PhysicsBody player)
+	{ // Initializes Boss Enemy for each level
+		float percentHealth = (float)(bossEnemy.actualHealth / bossEnemy.maxHealth);
+		displayHealthBar(percentHealth, (Vector2)bossEnemy.enemyPosition);
+		if(enemyFrame >= 60) enemyFrame = 0;
+		if(bossEnemy.isDead)
+		{
+			DrawTextureRec(bossEnemy.deathSheet, 
+				(Rectangle){0 + (float)(bossEnemy.deathSheet.width / bossEnemy.deathFrames) * 
+				deathFrame, 0 + (bossEnemy.deathSheet.height / 2) * enemyIsLeft, 
+				(float)(bossEnemy.deathSheet.width / bossEnemy.deathFrames), (float)(bossEnemy.deathSheet.height / 2)}, (Vector2)bossEnemy.enemyPosition, WHITE);
+			deathFrame ++;
+		}
+		else
+		{
+			DrawTextureRec(bossEnemy.walkSheet, 
+				(Rectangle){0 + (float)(bossEnemy.walkSheet.width / bossEnemy.walkFrames) * 
+				(enemyFrame / (60 / bossEnemy.walkFrames)), 0 + (bossEnemy.walkSheet.height / 2) * enemyIsLeft, 
+				(float)(bossEnemy.walkSheet.width / bossEnemy.walkFrames), (float)(bossEnemy.walkSheet.height / 2)}, (Vector2)bossEnemy.enemyPosition, WHITE);
+			if(bossEnemy.enemyPosition.x >= (SCREENWIDTH - 100)) enemyIsLeft = TRUE;
+			if(bossEnemy.enemyPosition.x <= 20) enemyIsLeft = FALSE;
+			if(enemyIsLeft) bossEnemy.enemyPosition.x -= ENEMYVELOCITY;
+			else bossEnemy.enemyPosition.x += ENEMYVELOCITY;
+		}
+		Rectangle enemyHitBox = {bossEnemy.enemyPosition.x, bossEnemy.enemyPosition.y, (bossEnemy.walkSheet.width / bossEnemy.walkFrames), (bossEnemy.walkSheet.height / 2)};
+		if(CheckCollisionPointRec(player->position, enemyHitBox))
+		{
+			if(isAttack) bossEnemy.actualHealth -= 1;
+			if(bossEnemy.actualHealth <= 0) bossEnemy.isDead = TRUE;
+			if((float)((float)enemyFrame / (float)2) == 0) playerHealth -= 1;
+		}
+		enemyFrame ++;
+		return bossEnemy;
+	}
 	int charInput(PhysicsBody player) 
 	{ // Handles Input from User and Turns it into Variable
 		int key;
@@ -219,7 +331,6 @@ int main()
 				return 0;
 		}
 	}
-
 	void drawChar(Texture2D runSheet, Texture2D idleSheet, Texture2D jumpSheet, Texture2D attackSheet, PhysicsBody player)
 	{ // Takes Variable from Previous Function and Draws cooresponding sprite
 		int mvmentOption = charInput(player);
@@ -362,6 +473,7 @@ int main()
 					UnloadTexture(colonialMan.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 1:
 					DestroyPhysicsBody(threeBarrels);
@@ -372,6 +484,7 @@ int main()
 					UnloadTexture(oldWoman.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 2:
 					DestroyPhysicsBody(platformTwo);
@@ -379,6 +492,7 @@ int main()
 					UnloadTexture(trueWizard.spriteSheet);
 					levelZero[screenNum - 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 			}
 		}
@@ -395,6 +509,7 @@ int main()
 					UnloadTexture(colonialMan.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 1:
 					DestroyPhysicsBody(threeBarrels);
@@ -405,6 +520,7 @@ int main()
 					UnloadTexture(oldWoman.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 2:
 					DestroyPhysicsBody(platformTwo);
@@ -412,6 +528,7 @@ int main()
 					UnloadTexture(trueWizard.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 			}
 		}
@@ -428,6 +545,7 @@ int main()
 					UnloadTexture(colonialMan.spriteSheet);
 					levelZero[screenNum + 2] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 1:
 					DestroyPhysicsBody(threeBarrels);
@@ -438,6 +556,7 @@ int main()
 					UnloadTexture(oldWoman.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 				case 2:
 					DestroyPhysicsBody(platformTwo);
@@ -445,11 +564,12 @@ int main()
 					UnloadTexture(trueWizard.spriteSheet);
 					levelZero[screenNum + 1] = FALSE;
 					isText = FALSE;
+					textCounter = 0;
 					break;
 			}
 		}
 	}
-	void levelZeroInit(PhysicsBody player)
+	void levelZeroInit(PhysicsBody player, Texture2D cyclopsWalkSheet, Texture2D cyclopsDeathSheet)
 	{ // Initializes the current screen on Level 0
 		if(!(levelZero[screenNum]))
 		{
@@ -489,7 +609,8 @@ int main()
 					platformThree = CreatePhysicsBodyRectangle((Vector2){466, 472}, 95, 5, 10);
 					platformTwo->enabled = false;
 					platformThree->enabled = false;
-					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes. Press Y."};
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Hello young adventurer! Thank you for meeting me here! I apologize for the strange cyclops you had to fight, but you did good! That was a man from the future named Adolf Hitler, a truly nasty man who can only see his way. You see, there are times when people and objects slip through the fabrics of reality, only to become exaggerated versions of themselves until they are defeated and sent back. Do not fret, however,with my aid you will be in great care! Now, onward to the Industrial Revolution! Press K to Continue"};
+					cyclopsBoss = (enemyBoss){cyclopsWalkSheet, cyclopsDeathSheet, 12, 9, FALSE, (Vector2){672, 510}, 250, 250};
 					levelZero[screenNum] = TRUE;
 					break;
 			}
@@ -513,24 +634,34 @@ int main()
 			case 2:
 				if(scrollinMan == FALSE)
 				{
-					initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
-					if(IsKeyPressed(KEY_Y) && (isText == TRUE)) 
+					if(cyclopsBoss.isDead && deathFrame == 9)
 					{
-						screenNum = 0; 
-						levelZeroDeInit();
-						isText = FALSE;
-						textCounter = 0;
-						player->position.x = 50;
-						player->velocity = (Vector2){0, 0};
-						SetPhysicsBodyRotation(player, 0);
-						backPos.x = 0;
-						gameCheck++;
+						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
+						{
+							screenNum = 0;
+							levelZeroDeInit();
+							isText = FALSE;
+							textCounter = 0;
+							player->position.x = 50;
+							player->velocity = (Vector2){0, 0};
+							SetPhysicsBodyRotation(player, 0);
+							backPos.x = 0;
+							deathFrame = 0;
+							playerHealth = maxPlayerHealth;
+							gameCheck++;
+						}
+					}
+					else
+					{
+						cyclopsBoss = initEnemyBoss(cyclopsBoss, player);
+						if(playerHealth <= 0) fadeToBlack();
+						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
 					}
 				}
 				break;
 		}
 	}
-		
 	void levelOneDeInit()
 	{ //De-initializes the screen to move on to the next on Level 1
 		if(levelOne[screenNum - 1])
@@ -544,6 +675,8 @@ int main()
 					DestroyPhysicsBody(platformFour);
 					DestroyPhysicsBody(ledgeThree);
 					DestroyPhysicsBody(factoryRoof);
+					UnloadTexture(oldWoman.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
 					levelOne[screenNum - 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -551,12 +684,15 @@ int main()
 					DestroyPhysicsBody(platformFive);
 					DestroyPhysicsBody(twoBarrels);
 					DestroyPhysicsBody(oneBarrel);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
 					levelOne[screenNum - 1] = FALSE;
 					isText = FALSE;
 					break;
 				case 2:
 					DestroyPhysicsBody(twoBoxes);
 					DestroyPhysicsBody(oneBox);
+					UnloadTexture(trueWizard.spriteSheet);
 					levelOne[screenNum - 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -573,6 +709,8 @@ int main()
 					DestroyPhysicsBody(platformFour);
 					DestroyPhysicsBody(ledgeThree);
 					DestroyPhysicsBody(factoryRoof);
+					UnloadTexture(oldWoman.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
 					levelOne[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -580,12 +718,15 @@ int main()
 					DestroyPhysicsBody(platformFive);
 					DestroyPhysicsBody(twoBarrels);
 					DestroyPhysicsBody(oneBarrel);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
 					levelOne[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
 				case 2:
 					DestroyPhysicsBody(twoBoxes);
 					DestroyPhysicsBody(oneBox);
+					UnloadTexture(trueWizard.spriteSheet);
 					levelOne[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -602,6 +743,8 @@ int main()
 					DestroyPhysicsBody(platformFour);
 					DestroyPhysicsBody(ledgeThree);
 					DestroyPhysicsBody(factoryRoof);
+					UnloadTexture(oldWoman.spriteSheet);
+					UnloadTexture(colonialMan.spriteSheet);
 					levelOne[screenNum + 2] = FALSE;
 					isText = FALSE;
 					break;
@@ -609,6 +752,8 @@ int main()
 					DestroyPhysicsBody(platformFive);
 					DestroyPhysicsBody(twoBarrels);
 					DestroyPhysicsBody(oneBarrel);
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
 					levelOne[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -642,6 +787,8 @@ int main()
 					platformFour->enabled = false;
 					ledgeThree->enabled = false;
 					factoryRoof->enabled = false;
+					colonialMan = (nonPlayerChar){LoadTexture("images/colonialMan.png"), 4, "If one more puff of smoke comes out, I'm jumping!"};
+					oldWoman = (nonPlayerChar){LoadTexture("images/woman-idle.png"), 7, "That poor man's family is known for giving up. . ."};
 					levelOne[screenNum] = TRUE;
 					break;
 				case 1:
@@ -652,6 +799,8 @@ int main()
 					platformFive->enabled = false;
 					twoBarrels->enabled = false;
 					oneBarrel->enabled = false;
+					beardMan = (nonPlayerChar){LoadTexture("images/bearded-idle.png"), 5, "Innovation is bad for business!"};
+					childMan = (nonPlayerChar){LoadTexture("images/ordMan.png"), 5, "Please, sir, may I have some more?"};
 					levelOne[screenNum] = TRUE;
 					break;
 				case 2:
@@ -660,7 +809,8 @@ int main()
 					oneBox = CreatePhysicsBodyRectangle((Vector2){142, 514}, 39, 33, 10);
 					twoBoxes->enabled = false;
 					oneBox->enabled = false;
-					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome, my child, to the beginning of your journey. I am Jerry, and I wish to show you the future humanity takes. Press Y."};
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Ah, there you are! I was beginning to wonder what all the commotion was about. This creature was quite strange, hmm? It seems this one was from the same time period as the previous. It appears to have been Benito Mussolini, fitting, as they were both angry bald men. Well, are you ready for the next trip? We are going to these creatures' time, World War II! Press K to Continue"};
+					flaminSkullBoss = (enemyBoss){flaminSkullSheet, flaminSkullSheet, 16, 16, FALSE, (Vector2){672, 484}, 250, 250};
 					levelOne[screenNum] = TRUE;
 					break;
 			}
@@ -671,36 +821,48 @@ int main()
 			case 0:
 				if(scrollinMan == FALSE)
 				{
-
+					initNonPlayerChar(oldWoman, (Vector2){395, 518}, player);
+					initNonPlayerChar(colonialMan, (Vector2){640, 428}, player);
 				}
 				break;
 			case 1:
 				if(scrollinMan == FALSE)
 				{
-
+					initNonPlayerChar(beardMan, (Vector2){110, 518}, player);
+					initNonPlayerChar(childMan, (Vector2){220, 482 - childMan.spriteSheet.height}, player);
 				}
 				break;
 			case 2:
 				if(scrollinMan == FALSE)
 				{
-					initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
-					if(IsKeyPressed(KEY_Y) && (isText == TRUE)) 
+					if(flaminSkullBoss.isDead && deathFrame == 16)
 					{
-						screenNum = 0; 
-						levelOneDeInit();
-						isText = FALSE;
-						textCounter = 0;
-						player->position.x = 50;
-						player->velocity = (Vector2){0, 0};
-						SetPhysicsBodyRotation(player, 0);
-						backPos.x = 0;
-						gameCheck++;
+						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
+						{
+							screenNum = 0;
+							levelOneDeInit();
+							isText = FALSE;
+							textCounter = 0;
+							player->position.x = 50;
+							player->velocity = (Vector2){0, 0};
+							SetPhysicsBodyRotation(player, 0);
+							backPos.x = 0;
+							deathFrame = 0;
+							playerHealth = maxPlayerHealth;
+							gameCheck++;
+						}
+					}
+					else
+					{
+						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
+						if(playerHealth <= 0) fadeToBlack();
+						flaminSkullBoss = initEnemyBoss(flaminSkullBoss, player);
 					}
 				}
 				break;
 		}
 	}
-	
 	void levelTwoDeInit()
 	{ //De-initializes the screen to move on to the next on Level 2
 		if(levelTwo[screenNum - 1])
@@ -712,17 +874,21 @@ int main()
 					DestroyPhysicsBody(twoBoxes);
 					DestroyPhysicsBody(oneBox);
 					levelTwo[screenNum - 1] = FALSE;
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
 					isText = FALSE;
 					break;
 				case 1:
 					DestroyPhysicsBody(fiveBoxes);
 					DestroyPhysicsBody(threeBoxes);
 					DestroyPhysicsBody(topBox);
+					UnloadTexture(popo1.spriteSheet);
+					UnloadTexture(popo2.spriteSheet);
 					levelTwo[screenNum - 1] = FALSE;
 					isText = FALSE;
 					break;
 				case 2:
-
+					UnloadTexture(trueWizard.spriteSheet);
 					levelTwo[screenNum - 1] = FALSE;
 					isText = FALSE;
 					break;
@@ -737,18 +903,53 @@ int main()
 					DestroyPhysicsBody(twoBoxes);
 					DestroyPhysicsBody(oneBox);
 					levelTwo[screenNum + 1] = FALSE;
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
+					levelTwo[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
 				case 1:
 					DestroyPhysicsBody(fiveBoxes);
 					DestroyPhysicsBody(threeBoxes);
 					DestroyPhysicsBody(topBox);
+					UnloadTexture(popo1.spriteSheet);
+					UnloadTexture(popo2.spriteSheet);
 					levelTwo[screenNum + 1] = FALSE;
 					isText = FALSE;
 					break;
 				case 2:
-
+					UnloadTexture(trueWizard.spriteSheet);
 					levelTwo[screenNum + 1] = FALSE;
+					isText = FALSE;
+					break;
+			}
+		}
+		else if(levelTwo[screenNum + 2])
+		{
+			switch(screenNum + 2)
+			{
+				case 0:
+					DestroyPhysicsBody(platformSix);
+					DestroyPhysicsBody(twoBoxes);
+					DestroyPhysicsBody(oneBox);
+					levelTwo[screenNum + 2] = FALSE;
+					UnloadTexture(beardMan.spriteSheet);
+					UnloadTexture(childMan.spriteSheet);
+					levelTwo[screenNum + 2] = FALSE;
+					isText = FALSE;
+					break;
+				case 1:
+					DestroyPhysicsBody(fiveBoxes);
+					DestroyPhysicsBody(threeBoxes);
+					DestroyPhysicsBody(topBox);
+					UnloadTexture(popo1.spriteSheet);
+					UnloadTexture(popo2.spriteSheet);
+					levelTwo[screenNum + 2] = FALSE;
+					isText = FALSE;
+					break;
+				case 2:
+					UnloadTexture(trueWizard.spriteSheet);
+					levelTwo[screenNum + 2] = FALSE;
 					isText = FALSE;
 					break;
 			}
@@ -768,6 +969,8 @@ int main()
 					platformSix->enabled = false;
 					twoBoxes->enabled = false;
 					oneBox->enabled = false;
+					beardMan = (nonPlayerChar){LoadTexture("images/bearded-idle.png"), 5, "No one respects my cooking business!"};
+					childMan = (nonPlayerChar){LoadTexture("images/ordMan.png"), 5, "I may not look it, but I'm a cryptographer."};
 					levelTwo[screenNum] = TRUE;
 					break;
 				case 1:
@@ -778,11 +981,17 @@ int main()
 					fiveBoxes->enabled = false;
 					threeBoxes->enabled = false;
 					topBox->enabled = false;
+					Image popo = LoadImage("images/popoIdle.png");
+					ImageResize(&popo, (popo.width * 2), (popo.height * 2));
+					popo1 = (nonPlayerChar){LoadTextureFromImage(popo), 7, "We are in a investigation of Alan Turing."};
+					popo2 = (nonPlayerChar){LoadTextureFromImage(popo), 7, "We have reason to believe he might be a homosexual."};
+					UnloadImage(popo);
 					levelTwo[screenNum] = TRUE;
 					break;
 				case 2:
 					levelTwoDeInit();
-					
+					trueWizard = (nonPlayerChar){LoadTexture("images/wizardSheet.png"), 10, "Welcome back! I saw you defeated another time anomaly! I have no clue who this might be, it's possible it could be from a farther time than I know. Well, anyway, I hope this has given you closure to your preconceived notions of humanity. It seems no matter what you throw at our species, wide disease, great wars, we shall prevail and evolve into even better than before. I guess the moral of the story is . . . When you hit rock bottom all you can go is up. Or to just have fun! Thanks for playing! Press K to Continue"};
+					miniMinotaurBoss = (enemyBoss){miniMinotaurWalkSheet, miniMinotaurDeathSheet, 8, 6, FALSE, (Vector2){672, 494}, 250, 250};
 					levelTwo[screenNum] = TRUE;
 					break;
 			}
@@ -793,19 +1002,44 @@ int main()
 			case 0:
 				if(scrollinMan == FALSE)
 				{
-
+					initNonPlayerChar(beardMan, (Vector2){518, 564 - beardMan.spriteSheet.height}, player);
+					initNonPlayerChar(childMan, (Vector2){270, 465 - childMan.spriteSheet.height}, player);
 				}
 				break;
 			case 1:
 				if(scrollinMan == FALSE)
 				{
-
+					initNonPlayerChar(popo1, (Vector2){125, 564 - popo1.spriteSheet.height}, player);
+					initNonPlayerChar(popo2, (Vector2){255, 564 - popo1.spriteSheet.height}, player);
 				}
 				break;
 			case 2:
 				if(scrollinMan == FALSE)
 				{
-
+					if(miniMinotaurBoss.isDead && deathFrame == 6)
+					{
+						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
+						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
+						{
+							screenNum = 0;
+							levelTwoDeInit();
+							isText = FALSE;
+							textCounter = 0;
+							player->position.x = 50;
+							player->velocity = (Vector2){0, 0};
+							SetPhysicsBodyRotation(player, 0);
+							backPos.x = 0;
+							deathFrame = 0;
+							playerHealth = maxPlayerHealth;
+							gameCheck++;
+						}
+					}
+					else
+					{
+						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
+						if(playerHealth <= 0) fadeToBlack();
+						miniMinotaurBoss = initEnemyBoss(miniMinotaurBoss, player);
+					}
 				}
 				break;
 		}
@@ -830,7 +1064,7 @@ int main()
 			case 2:
 				backParallax(runSheet, levelZeroBack, charBody);
 				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, attackSheet, charBody);
-				levelZeroInit(charBody);
+				levelZeroInit(charBody, cyclopsWalkSheet, cyclopsDeathSheet);
 				break;
 			case 3:
 				fadeToBlack();
@@ -847,6 +1081,14 @@ int main()
 				backParallax(runSheet, levelTwoBack, charBody);
 				if(scrollinMan == FALSE) drawChar(runSheet, idleSheet, jumpSheet, attackSheet, charBody);
 				levelTwoInit(charBody);
+				break;
+			case 7:
+				fadeToBlack();
+				break;
+			case 8:
+				EndDrawing();
+				CloseWindow();
+				return 0;
 				break;
 		}
 		DrawFPS(5, 5);
