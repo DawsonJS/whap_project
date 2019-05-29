@@ -5,7 +5,7 @@
 #define PHYSAC_IMPLEMENTATION
 #define PHYSAC_NO_THREADS
 #include "physac.h"
-#define VERSION "Time Tales 0.9"
+#define VERSION "Time Tales 1.0"
 #define TRUE 1
 #define FALSE 0
 #define VELOCITY 0.15f
@@ -15,7 +15,7 @@
 #define SCREENHEIGHT 600
 #define SCALAR 1.5
 
-char fadestoBlack[5][1300] = {("Welcome to Time Tales v1.0!\nThis game begins at the height of the Black Death, plague, whatever you \nwould like to call it, circa mid to late 14th century. You, the noble knight \nturned adventurer, seek to end this miserable time for all involved. After \nmeeting a mysterious man who goes by 'The Wizard,' you agree to meet him \nby the well at the edge of town. He tells you nothing can be done of the \npresent, but that hope can be had for the future. He promises to perform his mysterious magic and take you to the lands of a distant time to give you closure.\nPress Enter to Continue"), ("On your journey, The Wizard explains humanity's advancements through time. The Industrial Revolution, marked by the latter half of the 18th century, \nushered in a wave of new innovations replacing manual labor with so called \ndevices named machines. These machines increased several industries \nten-fold. For example, Richard Arkwright's advent of the water frame \ngreatly improved the cotton spinning process and was followed by a \nplethora of cotton mills when the patent expired. Continually, steam power \nand the steam engine, invented by James Watt, allowed for these machines \nto work without direct access to water. Thus, innovation and \nindustrialization led to the expansion and economic boom of Great Britain.\nKey Concept 5.1\n\nAfter you arrive, The Wizard says he has business to attend to and to \nmeet him by another well at the edge of town. You decide to explore this \nmysterious time period for yourself.\nPress Enter to Continue"), ("When asked about World War II, The Wizard begins with the horrors of \nhuman advancement of weaponry and warfare. The use of chemicals and \ntrench warfare along with the invention of flying and beastial travel \nmachines made World War I known as the Great War. However, it was not \nlong after instability broke out once again. Bitter Germany, under the \nformer-Cyclops Adolf Hitler, invaded Poland while still under supervision \nfrom other kingdoms. This led to war being declared upon Germany by both \nFrance and Britain in 1939. Within the gap between the two Great Wars, new machines and mysterious devices had been either developed or continued to be developed during this time. The Wizard continued, saying a major beginning for humanity occurred in a place named Bletchley Park. It was at this place where the first machine called a 'computer' is regarded to have been built. Alan Turing is accredited to developing a major part of the Bombe, a \ncryptographic deciphering device used to decrypt the codes of German \ntransmissions. This technology marked the beginning of true computational \nmechanics.\nKey Concept 6.1\n\nThe Wizard then tells you to meet him at the conveniently placed well at the edge of the park.\nPress Enter to Continue"), ("Time Tales v1.0\nProgramming by Dawson Schraiber\nArtwork provided by various sources on the interwebs"), ("GAME OVER\nPress Enter to Try Again")};
+char fadestoBlack[5][1300] = {("Welcome to Time Tales v1.0!\nThis game begins at the height of the Black Death, plague, whatever you \nwould like to call it, circa mid to late 14th century. You, the noble knight \nturned adventurer, seek to end this miserable time for all involved. After \nmeeting a mysterious man who goes by 'The Wizard,' you agree to meet him \nby the well at the edge of town. He tells you nothing can be done of the \npresent, but that hope can be had for the future. He promises to perform his mysterious magic and take you to the lands of a distant time to give you closure.\nControls:\nA - Move Left\nD - Move Right\nK - Slice & Dice / Exit Level\nSpace - Jump\nPress Enter to Continue"), ("On your journey, The Wizard explains humanity's advancements through time. The Industrial Revolution, marked by the latter half of the 18th century, \nushered in a wave of new innovations replacing manual labor with so called \ndevices named machines. These machines increased several industries \nten-fold. For example, Richard Arkwright's advent of the water frame \ngreatly improved the cotton spinning process and was followed by a \nplethora of cotton mills when the patent expired. Continually, steam power \nand the steam engine, invented by James Watt, allowed for these machines \nto work without direct access to water. Thus, innovation and \nindustrialization led to the expansion and economic boom of Great Britain.\nKey Concept 5.1\n\nAfter you arrive, The Wizard says he has business to attend to and to \nmeet him by another well at the edge of town. You decide to explore this \nmysterious time period for yourself.\nPress Enter to Continue"), ("When asked about World War II, The Wizard begins with the horrors of \nhuman advancement of weaponry and warfare. The use of chemicals and \ntrench warfare along with the invention of flying and beastial travel \nmachines made World War I known as the Great War. However, it was not \nlong after instability broke out once again. Bitter Germany, under the \nformer-Cyclops Adolf Hitler, invaded Poland while still under supervision \nfrom other kingdoms. This led to war being declared upon Germany by both \nFrance and Britain in 1939. Within the gap between the two Great Wars, new machines and mysterious devices had been either developed or continued to be developed during this time. The Wizard continued, saying a major beginning for humanity occurred in a place named Bletchley Park. It was at this place where the first machine called a 'computer' is regarded to have been built. Alan Turing is accredited to developing a major part of the Bombe, a \ncryptographic deciphering device used to decrypt the codes of German \ntransmissions. This technology marked the beginning of true computational \nmechanics.\nKey Concept 6.1\n\nThe Wizard then tells you to meet him at the conveniently placed well at the edge of the park.\nPress Enter to Continue"), ("Time Tales v1.0\n\nProgramming by Dawson Schraiber\n\nArtwork provided by various sources, I do not own any of it.\n\nMusic:\nKevin Macleod\nAndreas Ericson\n\nThank you for playing my game! It was a blast making it!\n\nPress Enter to Exit Time Tales"), ("GAME OVER\nPress Enter to Try Again")};
 
 //Global Variables
 int groundLev = 495;
@@ -49,6 +49,7 @@ float maxPlayerHealth = 15;
 int isContinue = FALSE;
 int pageNum = 1;
 int textStart = 0;
+int isMusicPlaying = FALSE;
 
 //Physics Objects
 //levelZero
@@ -169,6 +170,23 @@ int main()
 	wallRight->enabled = false;
 	PhysicsBody charBody = CreatePhysicsBodyRectangle((Vector2)charPos, (float)(runSheet.width / 6), (float)(runSheet.height / 2), 1);
 	charBody->freezeOrient = true;      // Constrain body rotation to avoid little collision torque amounts
+	
+	InitAudioDevice();
+	Music titleMusic = LoadMusicStream("sounds/celtic_impulse.ogg");
+	Music levelZeroMusic = LoadMusicStream("sounds/myst.ogg");
+	Music levelOneMusic = LoadMusicStream("sounds/industrial_revolution.ogg");
+	Music levelTwoMusic = LoadMusicStream("sounds/miris_magic_dance.ogg");
+	Music bossMusic = LoadMusicStream("sounds/medieval_myths_19.ogg");
+	SetMusicVolume(titleMusic, 0.6);
+	SetMusicVolume(levelZeroMusic, 0.6);
+	SetMusicVolume(levelOneMusic, 0.6);
+	SetMusicVolume(levelTwoMusic, 0.6);
+	SetMusicVolume(bossMusic, 0.6);
+	Sound hitSound = LoadSound("sounds/hitSound.ogg");
+	Sound runSound = LoadSound("sounds/runSound.ogg");
+	Sound cursorSound = LoadSound("sounds/cursorSound.ogg");
+	SetSoundVolume(cursorSound, 0.015);
+	SetSoundVolume(hitSound, 0.05);
 
 	void fadeToBlack()
 	{ // Cut to black to give some background information
@@ -198,7 +216,7 @@ int main()
 				break;
 		}
 		Rectangle container = {SCREENWIDTH / 8, SCREENHEIGHT / 6, 600, 500};
-		textCounter += 6;
+		if (!((textCounter / 10) >= strlen(fadestoBlack[fadesToBlackIndex]))) {textCounter += 6; if(!(IsSoundPlaying(cursorSound))) PlaySound(cursorSound);}
 		DrawTextRec(GetFontDefault(), SubText(fadestoBlack[fadesToBlackIndex], 0, textCounter / 10),
 					(Rectangle)container, 15, 2, true, RAYWHITE);
 		if(IsKeyPressed(KEY_ENTER) && fadesToBlackIndex != 4) {isBlack = FALSE; textCounter = 0; gameCheck++; isContinue = FALSE; pageNum = 1; textStart = 0;}
@@ -219,8 +237,8 @@ int main()
 	{ // Displays text box for each character
 		Rectangle container = {Position.x - 125, Position.y - 50, 225, 50};
 		
-		if(!(textCounter >= 1200)) textCounter += 6;
-		else if(isContinue && !(textCounter >= (1200 * pageNum))) textCounter += 6;
+		if(!((textCounter / 10) >= 120)) {textCounter += 6; if(!(IsSoundPlaying(cursorSound)) && !((textCounter / 10) >= strlen(message))) PlaySound(cursorSound);}
+		else if(isContinue && !(textCounter >= (1200 * pageNum))) {textCounter += 6; if(!(IsSoundPlaying(cursorSound)) && !((textCounter / 10) >= (1200 * pageNum))) PlaySound(cursorSound);}
 		
 		DrawRectangleLinesEx(container, 3, BLACK); 
 		DrawTextRec(GetFontDefault(), SubText(message, textStart, textCounter/10),
@@ -291,6 +309,7 @@ int main()
 		if(IsKeyPressed(KEY_K) && isAttack == FALSE)
 		{
 			key = KEY_K;
+			PlaySound(hitSound);
 		}
 		else if(IsKeyPressed(KEY_SPACE))
 		{
@@ -309,12 +328,14 @@ int main()
 		{
 			case KEY_RIGHT:
 				isLeft = FALSE;
+				if(!(IsSoundPlaying(runSound))) PlaySound(runSound);
 				if(IsKeyDown(KEY_LEFT_CONTROL)) {player->velocity.x = VELOCITY * 2;}
 				else {player->velocity.x = VELOCITY;}
 				return 1;
 				break;
 			case KEY_LEFT:
 				isLeft = TRUE;
+				if(!(IsSoundPlaying(runSound))) PlaySound(runSound);
 				if(IsKeyDown(KEY_LEFT_CONTROL)) {player->velocity.x = -VELOCITY * 2;}
 				else {player->velocity.x = -VELOCITY;}
 				return 1;
@@ -415,7 +436,7 @@ int main()
 		}
 		else if(titlePos.y > 20)
 		{
-			titlePos.y -= 2;
+			titlePos.y -= 1;
 			DrawTexture(titleScreen, titlePos.x, titlePos.y, WHITE);
 			return 1;
 		}
@@ -623,6 +644,8 @@ int main()
 					initNonPlayerChar(beardMan, (Vector2){385, 520}, player);
 					initNonPlayerChar(colonialMan, (Vector2){692, 422}, player);
 				}
+				if(!(IsMusicPlaying(levelZeroMusic))) PlayMusicStream(levelZeroMusic);
+				UpdateMusicStream(levelZeroMusic);
 				break;
 			case 1:
 				if(scrollinMan == FALSE)
@@ -630,12 +653,16 @@ int main()
 					initNonPlayerChar(oldMan, (Vector2){380, 522}, player);
 					initNonPlayerChar(oldWoman, (Vector2){320, 518}, player);
 				}
+				if(!(IsMusicPlaying(levelZeroMusic))) PlayMusicStream(levelZeroMusic);
+				UpdateMusicStream(levelZeroMusic);
 				break;
 			case 2:
 				if(scrollinMan == FALSE)
 				{
 					if(cyclopsBoss.isDead && deathFrame == 9)
 					{
+						if(!(IsMusicPlaying(levelZeroMusic))) PlayMusicStream(levelZeroMusic);
+						UpdateMusicStream(levelZeroMusic);
 						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
 						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
 						{
@@ -654,6 +681,8 @@ int main()
 					}
 					else
 					{
+						if(!(IsMusicPlaying(bossMusic))) PlayMusicStream(bossMusic);
+						UpdateMusicStream(bossMusic);
 						cyclopsBoss = initEnemyBoss(cyclopsBoss, player);
 						if(playerHealth <= 0) fadeToBlack();
 						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
@@ -824,6 +853,8 @@ int main()
 					initNonPlayerChar(oldWoman, (Vector2){395, 518}, player);
 					initNonPlayerChar(colonialMan, (Vector2){640, 428}, player);
 				}
+				if(!(IsMusicPlaying(levelOneMusic))) PlayMusicStream(levelOneMusic);
+				UpdateMusicStream(levelOneMusic);
 				break;
 			case 1:
 				if(scrollinMan == FALSE)
@@ -831,12 +862,16 @@ int main()
 					initNonPlayerChar(beardMan, (Vector2){110, 518}, player);
 					initNonPlayerChar(childMan, (Vector2){220, 482 - childMan.spriteSheet.height}, player);
 				}
+				if(!(IsMusicPlaying(levelOneMusic))) PlayMusicStream(levelOneMusic);
+				UpdateMusicStream(levelOneMusic);
 				break;
 			case 2:
 				if(scrollinMan == FALSE)
 				{
 					if(flaminSkullBoss.isDead && deathFrame == 16)
 					{
+						if(!(IsMusicPlaying(levelOneMusic))) PlayMusicStream(levelOneMusic);
+						UpdateMusicStream(levelOneMusic);
 						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
 						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
 						{
@@ -855,6 +890,8 @@ int main()
 					}
 					else
 					{
+						if(!(IsMusicPlaying(bossMusic))) PlayMusicStream(bossMusic);
+						UpdateMusicStream(bossMusic);
 						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
 						if(playerHealth <= 0) fadeToBlack();
 						flaminSkullBoss = initEnemyBoss(flaminSkullBoss, player);
@@ -1005,6 +1042,8 @@ int main()
 					initNonPlayerChar(beardMan, (Vector2){518, 564 - beardMan.spriteSheet.height}, player);
 					initNonPlayerChar(childMan, (Vector2){270, 465 - childMan.spriteSheet.height}, player);
 				}
+				if(!(IsMusicPlaying(levelTwoMusic))) PlayMusicStream(levelTwoMusic);
+				UpdateMusicStream(levelTwoMusic);
 				break;
 			case 1:
 				if(scrollinMan == FALSE)
@@ -1012,12 +1051,16 @@ int main()
 					initNonPlayerChar(popo1, (Vector2){125, 564 - popo1.spriteSheet.height}, player);
 					initNonPlayerChar(popo2, (Vector2){255, 564 - popo1.spriteSheet.height}, player);
 				}
+				if(!(IsMusicPlaying(levelTwoMusic))) PlayMusicStream(levelTwoMusic);
+				UpdateMusicStream(levelTwoMusic);
 				break;
 			case 2:
 				if(scrollinMan == FALSE)
 				{
 					if(miniMinotaurBoss.isDead && deathFrame == 6)
 					{
+						if(!(IsMusicPlaying(levelTwoMusic))) PlayMusicStream(levelTwoMusic);
+						UpdateMusicStream(levelTwoMusic);
 						initNonPlayerChar(trueWizard, (Vector2){672, 484}, player);
 						if(IsKeyPressed(KEY_K) && (isText == TRUE)) 
 						{
@@ -1036,6 +1079,8 @@ int main()
 					}
 					else
 					{
+						if(!(IsMusicPlaying(bossMusic))) PlayMusicStream(bossMusic);
+						UpdateMusicStream(bossMusic);
 						displayHealthBar((float)(playerHealth / maxPlayerHealth), (Vector2)GetPhysicsShapeVertex(player, 3));
 						if(playerHealth <= 0) fadeToBlack();
 						miniMinotaurBoss = initEnemyBoss(miniMinotaurBoss, player);
@@ -1051,8 +1096,10 @@ int main()
 		BeginDrawing();
 		switch(gameCheck){
 			case 0:
+				if(!(IsMusicPlaying(titleMusic))) PlayMusicStream(titleMusic);
 				ClearBackground(RAYWHITE);
 				DrawTexture(backGround, backPos.x, backPos.y, WHITE);
+				UpdateMusicStream(titleMusic);
 				if(!titleDisplay(titleScreen))
 				{
 					buttonFunction(startButtonSheet, (Vector2){SCREENWIDTH / 2 - startButtonSheet.width / 2, SCREENHEIGHT / 2 - startButtonSheet.height / 3 / 2}, 1);
@@ -1060,6 +1107,8 @@ int main()
 				break;
 			case 1:
 				fadeToBlack();
+				if(!(IsMusicPlaying(levelZeroMusic))) PlayMusicStream(levelZeroMusic);
+				UpdateMusicStream(levelZeroMusic);
 				break;
 			case 2:
 				backParallax(runSheet, levelZeroBack, charBody);
@@ -1067,6 +1116,8 @@ int main()
 				levelZeroInit(charBody, cyclopsWalkSheet, cyclopsDeathSheet);
 				break;
 			case 3:
+				if(!(IsMusicPlaying(levelOneMusic))) PlayMusicStream(levelOneMusic);
+				UpdateMusicStream(levelOneMusic);
 				fadeToBlack();
 				break;
 			case 4:
@@ -1075,6 +1126,8 @@ int main()
 				levelOneInit(charBody);
 				break;
 			case 5:
+				if(!(IsMusicPlaying(levelTwoMusic))) PlayMusicStream(levelTwoMusic);
+				UpdateMusicStream(levelTwoMusic);
 				fadeToBlack();
 				break;
 			case 6:
@@ -1083,9 +1136,12 @@ int main()
 				levelTwoInit(charBody);
 				break;
 			case 7:
+				if(!(IsMusicPlaying(titleMusic))) PlayMusicStream(titleMusic);
+				UpdateMusicStream(titleMusic);
 				fadeToBlack();
 				break;
 			case 8:
+				CloseAudioDevice();
 				EndDrawing();
 				CloseWindow();
 				return 0;
@@ -1094,6 +1150,7 @@ int main()
 		DrawFPS(5, 5);
 		EndDrawing();
 	}
+	CloseAudioDevice();
 	CloseWindow();
     return 0;
 }
