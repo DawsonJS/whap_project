@@ -188,9 +188,10 @@ int main()
 	SetSoundVolume(cursorSound, 0.015);
 	SetSoundVolume(hitSound, 0.05);
 
+    ToggleFullscreen();
 	void fadeToBlack()
 	{ // Cut to black to give some background information
-		if(!isBlack) {ClearBackground(BLACK); isBlack = TRUE;}
+		ClearBackground(BLACK);
 		switch(gameCheck)
 		{
 			case 1:
