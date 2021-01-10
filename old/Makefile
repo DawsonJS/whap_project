@@ -5,16 +5,16 @@ CC := gcc
 CFLAGS :=  -ggdb3 -O0 -s -Wall -std=c99 -D_DEFAULT_SOURCE -Wno-missing-braces -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 # add header files here
-HDRS := title.h constants.h
+HDRS := logic.h
 
 # add source files here
-SRCS := main.c title.c
+SRCS := mainGame.c logic.c
 
 # generate names of object files
 OBJS := $(SRCS:.c=.o)
 
 # name of executable
-EXEC := game
+EXEC := mainGame
 
 # default recipe
 all: $(EXEC)
